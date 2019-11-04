@@ -4,15 +4,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.xxg</groupId>
-    <artifactId>natx</artifactId>
+    <groupId>com.swust</groupId>
+    <artifactId>netty_proxy</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.2</version>
+    <version>1.0.0</version>
 
     <modules>
-        <module>natx-server</module>
-        <module>natx-client</module>
-        <module>natx-common</module>
+        <module>server</module>
+        <module>client</module>
+        <module>common</module>
     </modules>
 
     <properties>
@@ -25,7 +25,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.16.20</version>
+            <version>1.18.10</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
