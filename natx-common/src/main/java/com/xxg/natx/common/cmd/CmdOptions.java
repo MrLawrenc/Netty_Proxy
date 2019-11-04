@@ -10,7 +10,7 @@ public enum CmdOptions {
     /**
      * 帮助命令
      */
-    HELP("h", "help", false, "Help  command"),
+    HELP("H", "help", false, "Help  command"),
     /**
      * 服务端启动端口
      */

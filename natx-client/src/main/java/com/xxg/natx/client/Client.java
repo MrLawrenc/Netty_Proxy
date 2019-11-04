@@ -2,6 +2,7 @@ package com.xxg.natx.client;
 
 import com.xxg.natx.client.handler.ClientHandler;
 import com.xxg.natx.client.net.TcpConnection;
+import com.xxg.natx.common.cmd.CmdOptions;
 import com.xxg.natx.common.codec.MessageDecoder;
 import com.xxg.natx.common.codec.MessageEncoder;
 import io.netty.channel.ChannelInitializer;
@@ -19,52 +20,57 @@ public class Client {
 
     public static void main(String[] args) throws Exception {
 
-        // args
         Options options = new Options();
-        options.addOption("h", false, "Help");
-        options.addOption("server_addr", true, "Natx server address");
-        options.addOption("server_port", true, "Natx server port");
-        options.addOption("password", true, "Natx server password");
-        options.addOption("proxy_addr", true, "Proxy server address");
-        options.addOption("proxy_port", true, "Proxy server port");
-        options.addOption("remote_port", true, "Proxy server remote port");
+        options.addOption(CmdOptions.HELP.getOpt(), CmdOptions.HELP.getLongOpt(),
+                CmdOptions.HELP.isHasArgs(), CmdOptions.HELP.getDescription());
+        options.addOption(CmdOptions.HOST.getOpt(), CmdOptions.HOST.getLongOpt(),
+                CmdOptions.HOST.isHasArgs(), CmdOptions.HOST.getDescription());
+        options.addOption(CmdOptions.PORT.getOpt(), CmdOptions.PORT.getLongOpt(),
+                CmdOptions.PORT.isHasArgs(), CmdOptions.PORT.getDescription());
+        options.addOption(CmdOptions.PASSWORD.getOpt(), CmdOptions.PASSWORD.getLongOpt(),
+                CmdOptions.PASSWORD.isHasArgs(), CmdOptions.PASSWORD.getDescription());
+        options.addOption(CmdOptions.PROXY_HOST.getOpt(), CmdOptions.PROXY_HOST.getLongOpt(),
+                CmdOptions.PROXY_HOST.isHasArgs(), CmdOptions.PROXY_HOST.getDescription());
+        options.addOption(CmdOptions.PROXY_PORT.getOpt(), CmdOptions.PROXY_PORT.getLongOpt(),
+                CmdOptions.PROXY_PORT.isHasArgs(), CmdOptions.PROXY_PORT.getDescription());
+        options.addOption(CmdOptions.REMOTE_PORT.getOpt(), CmdOptions.REMOTE_PORT.getLongOpt(),
+                CmdOptions.REMOTE_PORT.isHasArgs(), CmdOptions.REMOTE_PORT.getDescription());
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
-
-        if (cmd.hasOption("h")) {
-            // print help
+        if (cmd.hasOption(CmdOptions.HELP.getLongOpt()) || cmd.hasOption(CmdOptions.HELP.getOpt())) {
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("options", options);
         } else {
 
-            String serverAddress = cmd.getOptionValue("server_addr");
+            //opt和longOpt都可以拿到命令对应的值
+            String serverAddress = cmd.getOptionValue(CmdOptions.HOST.getOpt());
             if (serverAddress == null) {
                 System.out.println("server_addr cannot be null");
                 return;
             }
-            String serverPort = cmd.getOptionValue("server_port");
+            String serverPort = cmd.getOptionValue(CmdOptions.PORT.getOpt());
             if (serverPort == null) {
                 System.out.println("server_port cannot be null");
                 return;
             }
-            String password = cmd.getOptionValue("password");
-            String proxyAddress = cmd.getOptionValue("proxy_addr");
+            String password = cmd.getOptionValue(CmdOptions.PASSWORD.getOpt());
+            String proxyAddress = cmd.getOptionValue(CmdOptions.PROXY_HOST.getOpt());
             if (proxyAddress == null) {
                 System.out.println("proxy_addr cannot be null");
                 return;
             }
-            String proxyPort = cmd.getOptionValue("proxy_port");
+            String proxyPort = cmd.getOptionValue(CmdOptions.PROXY_PORT.getOpt());
             if (proxyPort == null) {
                 System.out.println("proxy_port cannot be null");
                 return;
             }
-            String remotePort = cmd.getOptionValue("remote_port");
+            String remotePort = cmd.getOptionValue(CmdOptions.REMOTE_PORT.getOpt());
             if (remotePort == null) {
                 System.out.println("remote_port cannot be null");
                 return;
             }
-            System.out.println("pwd:"+password);
+            System.out.println("pwd:" + password);
             TcpConnection tcpConnection = new TcpConnection();
             tcpConnection.connect(serverAddress, Integer.parseInt(serverPort), new ChannelInitializer<SocketChannel>() {
                 @Override
