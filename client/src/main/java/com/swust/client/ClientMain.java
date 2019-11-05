@@ -1,7 +1,6 @@
 package com.swust.client;
 
 import com.swust.client.handler.ClientHandler;
-import com.swust.client.net.TcpClient;
 import com.swust.common.cmd.CmdOptions;
 import com.swust.common.codec.MessageDecoder;
 import com.swust.common.codec.MessageEncoder;
@@ -17,7 +16,7 @@ import org.apache.commons.cli.*;
  * @date : 2019/11/4 14:15
  * @description :   内网的netty客户端，该客户端内部嵌了一个客户端，内部的客户端是访问本地的应用
  */
-public class Client {
+public class ClientMain {
 
     public static void main(String[] args) throws Exception {
 

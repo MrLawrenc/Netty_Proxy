@@ -1,6 +1,6 @@
 package com.swust.client.handler;
 
-import com.swust.client.net.TcpClient;
+import com.swust.client.TcpClient;
 import com.swust.common.exception.Exception;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
@@ -41,8 +41,6 @@ public class ClientHandler extends CommonHandler {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws java.lang.Exception {
-
-        // register client information
         Message message = new Message();
         message.setType(MessageType.REGISTER);
         MessageMetadata messageMetadata = new MessageMetadata().setOpenTcpPort(port).setPassword(password);
@@ -93,14 +91,14 @@ public class ClientHandler extends CommonHandler {
      * 该请求来源于，请求外网暴露的端口，外网通过netty服务端转发来到这里的
      * 请求内部代理服务，建立netty客户端，请求访问本地的服务，获取返回结果
      */
-    private void processConnected(Message receiveMessage) throws java.lang.Exception {
+    private void processConnected(Message receiveMessage) {
 
         try {
             ClientHandler thisHandler = this;
             TcpClient localConnection = new TcpClient();
             localConnection.connect(proxyAddress, proxyPort, new ChannelInitializer<SocketChannel>() {
                 @Override
-                public void initChannel(SocketChannel ch) throws java.lang.Exception {
+                public void initChannel(SocketChannel ch) {
                     LocalProxyHandler localProxyHandler = new LocalProxyHandler(thisHandler,
                             receiveMessage.getMetadata().getChannelId());
                     ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(), localProxyHandler);
@@ -110,12 +108,12 @@ public class ClientHandler extends CommonHandler {
                 }
             });
         } catch (java.lang.Exception e) {
+            e.printStackTrace();
             Message message = new Message();
             message.setType(MessageType.DISCONNECTED);
             message.getMetadata().setChannelId(receiveMessage.getMetadata().getChannelId());
             ctx.writeAndFlush(message);
             channelHandlerMap.remove(receiveMessage.getMetadata().getChannelId());
-            throw e;
         }
     }
 

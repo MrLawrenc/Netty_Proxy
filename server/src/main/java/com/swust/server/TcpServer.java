@@ -1,4 +1,4 @@
-package com.swust.server.net;
+package com.swust.server;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -17,7 +17,7 @@ public class TcpServer {
     /**
      * tcp服务端初始化
      */
-    public synchronized boolean initTcpServer(int port, ChannelInitializer channelInitializer) {
+    public boolean initTcpServer(int port, ChannelInitializer channelInitializer) {
 
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -44,7 +44,7 @@ public class TcpServer {
     /**
      * 关闭tcp服务端
      */
-    public synchronized void close() {
+    public void close() {
         if (tcpChannel != null) {
             tcpChannel.close();
         }

@@ -20,9 +20,10 @@ import java.util.List;
 public class MessageDecoder extends MessageToMessageDecoder<ByteBuf> {
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List out) throws Exception {
+    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
         int type = msg.readInt();
         MessageType messageType = MessageType.valueOf(type);
+
         int metaDataLength = msg.readInt();
         CharSequence metaDataString = msg.readCharSequence(metaDataLength, CharsetUtil.UTF_8);
 
