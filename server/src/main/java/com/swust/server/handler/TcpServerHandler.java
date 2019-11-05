@@ -1,6 +1,6 @@
 package com.swust.server.handler;
 
-import com.swust.server.net.TcpServer;
+import com.swust.server.TcpServer;
 import com.swust.common.exception.Exception;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
@@ -34,7 +34,6 @@ public class TcpServerHandler extends CommonHandler {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws java.lang.Exception {
-
         Message message = (Message) msg;
         //客户端注册
         if (message.getType() == MessageType.REGISTER) {
@@ -56,7 +55,7 @@ public class TcpServerHandler extends CommonHandler {
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws java.lang.Exception {
+    public void channelInactive(ChannelHandlerContext ctx)  {
         remoteConnectionServer.close();
         if (hasRegister) {
             System.out.println("Stop server on port: " + port);
@@ -64,7 +63,7 @@ public class TcpServerHandler extends CommonHandler {
     }
 
     /**
-     * 处理客户端注册
+     * 处理客户端注册,每个客户端注册成功都会启动一个服务，绑定客户端指定的端口
      */
     private void processRegister(Message message) {
         String password = message.getMetadata().getPassword();
@@ -72,12 +71,13 @@ public class TcpServerHandler extends CommonHandler {
         if (this.password == null || !this.password.equals(password)) {
             message.getMetadata().setSuccess(false).setDescription("Token is wrong");
         } else {
+            //客户端指定对外开放的端口
             int port = message.getMetadata().getOpenTcpPort();
             try {
                 TcpServerHandler thisHandler = this;
                 remoteConnectionServer.initTcpServer(port, new ChannelInitializer<SocketChannel>() {
                     @Override
-                    public void initChannel(SocketChannel ch) throws java.lang.Exception {
+                    public void initChannel(SocketChannel ch) {
                         ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(),
                                 new RemoteProxyHandler(thisHandler));
                         channels.add(ch);
@@ -111,9 +111,7 @@ public class TcpServerHandler extends CommonHandler {
     }
 
     /**
-     * if message.getType() == MessageType.DISCONNECTED
-     *
-     * @param message
+     * 断开
      */
     private void processDisconnected(Message message) {
         channels.close(channel -> channel.id().asLongText().equals(message.getMetadata().getChannelId()));

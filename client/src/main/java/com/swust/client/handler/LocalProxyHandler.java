@@ -20,7 +20,7 @@ public class LocalProxyHandler extends CommonHandler {
     private CommonHandler proxyHandler;
     private String remoteChannelId;
 
-    public LocalProxyHandler(CommonHandler proxyHandler, String remoteChannelId) {
+    LocalProxyHandler(CommonHandler proxyHandler, String remoteChannelId) {
         this.proxyHandler = proxyHandler;
         this.remoteChannelId = remoteChannelId;
     }

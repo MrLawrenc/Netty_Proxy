@@ -8,12 +8,12 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 
 /**
- * @author  : LiuMing
+ * @author : LiuMing
  * @date : 2019/11/4 14:54
  * @description :   公共handler
  */
 public class CommonHandler extends ChannelInboundHandlerAdapter {
-
+    private int lossConnectCount = 0;
     protected ChannelHandlerContext ctx;
 
     public ChannelHandlerContext getCtx() {
@@ -36,8 +36,12 @@ public class CommonHandler extends ChannelInboundHandlerAdapter {
         if (evt instanceof IdleStateEvent) {
             IdleStateEvent e = (IdleStateEvent) evt;
             if (e.state() == IdleState.READER_IDLE) {
-                System.out.println("Read idle loss connection.");
-                ctx.close();
+                System.out.println(ctx.channel().remoteAddress() + "读超时");
+                lossConnectCount++;
+                if (lossConnectCount > 2) {
+                    System.out.println("Read idle loss connection.");
+                    ctx.close();
+                }
             } else if (e.state() == IdleState.WRITER_IDLE) {
                 Message message = new Message();
                 message.setType(MessageType.KEEPALIVE);

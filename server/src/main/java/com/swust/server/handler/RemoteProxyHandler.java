@@ -18,12 +18,12 @@ public class RemoteProxyHandler extends CommonHandler {
      */
     private CommonHandler proxyHandler;
 
-    public RemoteProxyHandler(CommonHandler proxyHandler) {
+    RemoteProxyHandler(CommonHandler proxyHandler) {
         this.proxyHandler = proxyHandler;
     }
 
     /**
-     * 外部请求外网代理的端口时调用
+     * 外部请求外网代理的端口时调用，保存的服务端channel会给内网客户端发送消息 proxyHandler.getCtx().writeAndFlush(message);
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
