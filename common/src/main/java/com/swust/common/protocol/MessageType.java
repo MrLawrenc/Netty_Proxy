@@ -10,23 +10,23 @@ import com.swust.common.exception.Exception;
 public enum MessageType {
 
     /**
-     * 注册
+     * 客户端请求向服务端注册
      */
     REGISTER(1),
     /**
-     * 注册结果
+     * 服务端响应注册成功
      */
     REGISTER_RESULT(2),
     /**
-     * 请求公网服务代理的连接
+     * 通知客户端有请求连接到服务端的指定端口
      */
     CONNECTED(3),
     /**
-     * 断开
+     * 断开连接请求
      */
     DISCONNECTED(4),
     /**
-     * 数据包
+     * 服务端和客户端之间发送的数据包
      */
     DATA(5),
     /**

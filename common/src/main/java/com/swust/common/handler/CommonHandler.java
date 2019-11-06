@@ -13,7 +13,7 @@ import io.netty.handler.timeout.IdleStateEvent;
  * @description :   公共handler
  */
 public class CommonHandler extends ChannelInboundHandlerAdapter {
-    private int lossConnectCount = 0;
+    protected int lossConnectCount = 0;
     protected ChannelHandlerContext ctx;
 
     public ChannelHandlerContext getCtx() {

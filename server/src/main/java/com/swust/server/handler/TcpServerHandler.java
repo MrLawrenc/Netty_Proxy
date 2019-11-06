@@ -44,8 +44,9 @@ public class TcpServerHandler extends CommonHandler {
             } else if (message.getType() == MessageType.DATA) {
                 processData(message);
             } else if (message.getType() == MessageType.KEEPALIVE) {
+                // 心跳包
+                lossConnectCount = 0;
                 System.out.println("心跳包............");
-                // 心跳包, 不处理
             } else {
                 throw new Exception("Unknown type: " + message.getType());
             }
@@ -55,7 +56,7 @@ public class TcpServerHandler extends CommonHandler {
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx)  {
+    public void channelInactive(ChannelHandlerContext ctx) {
         remoteConnectionServer.close();
         if (hasRegister) {
             System.out.println("Stop server on port: " + port);

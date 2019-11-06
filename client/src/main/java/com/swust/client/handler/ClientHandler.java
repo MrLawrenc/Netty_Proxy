@@ -64,6 +64,7 @@ public class ClientHandler extends CommonHandler {
             processData(message);
         } else if (message.getType() == MessageType.KEEPALIVE) {
             // 心跳包, 不处理
+            lossConnectCount = 0;
         } else {
             throw new Exception("Unknown type: " + message.getType());
         }
