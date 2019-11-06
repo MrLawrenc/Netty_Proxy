@@ -1,6 +1,5 @@
 package com.swust.common.protocol;
 
-import com.swust.common.exception.Exception;
 
 /**
  * @author : LiuMing

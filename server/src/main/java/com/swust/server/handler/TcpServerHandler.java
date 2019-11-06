@@ -1,10 +1,9 @@
 package com.swust.server.handler;
 
-import com.swust.server.TcpServer;
-import com.swust.common.exception.Exception;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageType;
+import com.swust.server.TcpServer;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.group.ChannelGroup;

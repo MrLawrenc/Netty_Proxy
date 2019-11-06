@@ -1,7 +1,6 @@
 package com.swust.client.handler;
 
 import com.swust.client.TcpClient;
-import com.swust.common.exception.Exception;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageMetadata;

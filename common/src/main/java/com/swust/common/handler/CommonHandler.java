@@ -15,6 +15,10 @@ import io.netty.handler.timeout.IdleStateEvent;
 public class CommonHandler extends ChannelInboundHandlerAdapter {
     protected int lossConnectCount = 0;
     protected ChannelHandlerContext ctx;
+    /**
+     * 默认读超时上限
+     */
+    private static final byte DEFAULT_RECONNECTION_LIMIT = 5;
 
     public ChannelHandlerContext getCtx() {
         return ctx;
@@ -38,7 +42,7 @@ public class CommonHandler extends ChannelInboundHandlerAdapter {
             if (e.state() == IdleState.READER_IDLE) {
                 System.out.println(ctx.channel().remoteAddress() + "读超时");
                 lossConnectCount++;
-                if (lossConnectCount > 2) {
+                if (lossConnectCount > DEFAULT_RECONNECTION_LIMIT) {
                     System.out.println("Read idle loss connection.");
                     ctx.close();
                 }

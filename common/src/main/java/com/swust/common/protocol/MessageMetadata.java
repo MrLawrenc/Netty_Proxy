@@ -33,7 +33,7 @@ public   class MessageMetadata {
      */
     private String host;
     /**
-     * 当前请求连接的channel
+     * 当前请求连接的channel long id
      */
     private String channelId;
 }
