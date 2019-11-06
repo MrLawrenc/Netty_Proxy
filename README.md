@@ -2,12 +2,14 @@
 基于Netty实现的Tcp请求内网穿透,目前已测试SSH和Http均可以穿透。**服务端必须部署在公网服务器上，客户端部署在需要被穿透的内网服务器。**
 ## Server
 启动命令:&emsp;    java -jar server.jar **-port 9527 -password 123lmy**
+
 或者简写:&emsp;    java -jar server.jar **-p 9527 -pwd 123lmy**
 - p     &emsp;  &emsp;  &emsp;     服务端端口
 - pwd  &emsp;  &emsp; 服务端token校验
 ## Client
 ### http服务:
 启动命令:&emsp;    java -jar client.jar **-host 47.96.158.922 -port 9527 -password 123lmy -proxy_host localhost -proxy_port 8080 -remote_port 12135**
+
 或者简写: &emsp;   java -jar client.jar **-h 47.96.158.922 -p 9527 -pwd 123lmy -proxy_h localhost -proxy_p 8080 -remote_p 12135**
 - h     &emsp;  &emsp;  &emsp;     服务端ip地址，可以是阿里云
 - p &emsp;  &emsp;  &emsp;     服务端端口，如果是阿里云需要带控制台暴露该端口
