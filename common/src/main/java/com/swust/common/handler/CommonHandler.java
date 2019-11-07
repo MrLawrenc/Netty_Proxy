@@ -6,6 +6,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import lombok.Getter;
 
 /**
  * @author : LiuMing
@@ -14,15 +15,13 @@ import io.netty.handler.timeout.IdleStateEvent;
  */
 public class CommonHandler extends ChannelInboundHandlerAdapter {
     protected int lossConnectCount = 0;
+    @Getter
     protected ChannelHandlerContext ctx;
     /**
      * 默认读超时上限
      */
     private static final byte DEFAULT_RECONNECTION_LIMIT = 5;
 
-    public ChannelHandlerContext getCtx() {
-        return ctx;
-    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -31,7 +30,6 @@ public class CommonHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        System.out.println("Exception caught ...");
         cause.printStackTrace();
     }
 
@@ -40,10 +38,10 @@ public class CommonHandler extends ChannelInboundHandlerAdapter {
         if (evt instanceof IdleStateEvent) {
             IdleStateEvent e = (IdleStateEvent) evt;
             if (e.state() == IdleState.READER_IDLE) {
-                System.out.println(ctx.channel().remoteAddress() + "读超时");
+                System.out.println(ctx.channel().remoteAddress() + " Read idle ");
                 lossConnectCount++;
                 if (lossConnectCount > DEFAULT_RECONNECTION_LIMIT) {
-                    System.out.println("Read idle loss connection.");
+                    System.out.println("Read idle  will loss connection.");
                     ctx.close();
                 }
             } else if (e.state() == IdleState.WRITER_IDLE) {
