@@ -48,7 +48,7 @@ public class CommonHandler extends ChannelInboundHandlerAdapter {
                 }
             } else if (e.state() == IdleState.WRITER_IDLE) {
                 Message message = new Message();
-                message.setType(MessageType.KEEPALIVE);
+                message.getHeader().setType(MessageType.KEEPALIVE);
                 ctx.writeAndFlush(message);
             }
         }

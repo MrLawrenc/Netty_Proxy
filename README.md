@@ -1,5 +1,6 @@
 # Netty_Proxy
-基于Netty实现的Tcp请求内网穿透,目前已测试SSH和Http均可以穿透。**服务端必须部署在公网服务器上，客户端部署在需要被穿透的内网服务器。**
+阅读开源项目natx源码之后自己基于Netty实现的Tcp请求内网穿透,目前已测试SSH和Http均可以穿透。**服务端必须部署在公网服务器上，客户端部署在需要被穿透的内网服务器。**
+
 ## Server
 启动命令:&emsp;    java -jar server.jar **-port 9527 -password 123lmy**
 

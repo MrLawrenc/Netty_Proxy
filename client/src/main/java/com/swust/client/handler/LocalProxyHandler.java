@@ -2,7 +2,7 @@ package com.swust.client.handler;
 
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
-import com.swust.common.protocol.MessageMetadata;
+import com.swust.common.protocol.MessageHeader;
 import com.swust.common.protocol.MessageType;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -29,17 +29,19 @@ public class LocalProxyHandler extends CommonHandler {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         byte[] data = (byte[]) msg;
         Message message = new Message();
-        message.setType(MessageType.DATA);
+        MessageHeader header = message.getHeader();
+        header.setType(MessageType.DATA);
         message.setData(data);
-        message.getMetadata().setChannelId(remoteChannelId);
+        header.setChannelId(remoteChannelId);
         proxyHandler.getCtx().writeAndFlush(message);
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         Message message = new Message();
-        message.setType(MessageType.DISCONNECTED);
-        message.setMetadata(new MessageMetadata().setChannelId(remoteChannelId));
+        MessageHeader header = message.getHeader();
+        header.setType(MessageType.DISCONNECTED);
+        header.setChannelId(remoteChannelId);
         proxyHandler.getCtx().writeAndFlush(message);
     }
 }

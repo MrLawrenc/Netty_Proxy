@@ -2,7 +2,7 @@ package com.swust.server.handler;
 
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
-import com.swust.common.protocol.MessageMetadata;
+import com.swust.common.protocol.MessageHeader;
 import com.swust.common.protocol.MessageType;
 import io.netty.channel.ChannelHandlerContext;
 
@@ -28,17 +28,18 @@ public class RemoteProxyHandler extends CommonHandler {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         Message message = new Message();
-        message.setType(MessageType.CONNECTED);
-        message.getMetadata().setChannelId(ctx.channel().id().asLongText());
+        MessageHeader header = message.getHeader();
+        header.setType(MessageType.CONNECTED);
+        header.setChannelId(ctx.channel().id().asLongText());
         proxyHandler.getCtx().writeAndFlush(message);
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         Message message = new Message();
-        message.setType(MessageType.DISCONNECTED);
-        MessageMetadata metadata = new MessageMetadata().setChannelId(ctx.channel().id().asLongText());
-        message.setMetadata(metadata);
+        MessageHeader messageHeader = new MessageHeader().setChannelId(ctx.channel().id().asLongText());
+        messageHeader.setType(MessageType.DISCONNECTED);
+        message.setHeader(messageHeader);
         proxyHandler.getCtx().writeAndFlush(message);
     }
 
@@ -46,9 +47,10 @@ public class RemoteProxyHandler extends CommonHandler {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         byte[] data = (byte[]) msg;
         Message message = new Message();
-        message.setType(MessageType.DATA);
+        MessageHeader header = message.getHeader();
+        header.setType(MessageType.DATA);
         message.setData(data);
-        message.getMetadata().setChannelId(ctx.channel().id().asLongText());
+        header.setChannelId(ctx.channel().id().asLongText());
         proxyHandler.getCtx().writeAndFlush(message);
     }
 }
