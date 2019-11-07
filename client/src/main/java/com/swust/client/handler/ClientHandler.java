@@ -1,10 +1,10 @@
 package com.swust.client.handler;
 
+import com.alibaba.fastjson.JSON;
 import com.swust.client.TcpClient;
-import com.swust.common.exception.Exception;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
-import com.swust.common.protocol.MessageMetadata;
+import com.swust.common.protocol.MessageHeader;
 import com.swust.common.protocol.MessageType;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
@@ -42,9 +42,9 @@ public class ClientHandler extends CommonHandler {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws java.lang.Exception {
         Message message = new Message();
-        message.setType(MessageType.REGISTER);
-        MessageMetadata messageMetadata = new MessageMetadata().setOpenTcpPort(port).setPassword(password);
-        message.setMetadata(messageMetadata);
+        MessageHeader header = message.getHeader();
+        header.setType(MessageType.REGISTER).setOpenTcpPort(port).setPassword(password);
+        message.setHeader(header);
         ctx.writeAndFlush(message);
 
         super.channelActive(ctx);
@@ -53,36 +53,41 @@ public class ClientHandler extends CommonHandler {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws java.lang.Exception {
 
+        if (!(msg instanceof Message)) {
+            throw new Exception("Unknown message: " + JSON.toJSONString(msg));
+        }
         Message message = (Message) msg;
-        if (message.getType() == MessageType.REGISTER_RESULT) {
+        MessageType type = message.getHeader().getType();
+        if (type == MessageType.REGISTER_RESULT) {
             processRegisterResult(message);
-        } else if (message.getType() == MessageType.CONNECTED) {
+        } else if (type == MessageType.CONNECTED) {
             processConnected(message);
-        } else if (message.getType() == MessageType.DISCONNECTED) {
+        } else if (type == MessageType.DISCONNECTED) {
             processDisconnected(message);
-        } else if (message.getType() == MessageType.DATA) {
+        } else if (type == MessageType.DATA) {
             processData(message);
-        } else if (message.getType() == MessageType.KEEPALIVE) {
+        } else if (type == MessageType.KEEPALIVE) {
             // 心跳包, 不处理
+            lossConnectCount = 0;
         } else {
-            throw new Exception("Unknown type: " + message.getType());
+            throw new Exception("Unknown type: " + type);
         }
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws java.lang.Exception {
         channelGroup.close();
-        System.out.println("Loss connection to Natx server, Please restart!");
+        System.out.println("Loss connection to  server, Please restart!");
     }
 
     /**
      * 处理在服务端注册结果
      */
     private void processRegisterResult(Message message) {
-        if (message.getMetadata().isSuccess()) {
+        if (message.getHeader().isSuccess()) {
             System.out.println("Register to  Server");
         } else {
-            System.out.println("Register fail: " + message.getMetadata().getDescription());
+            System.out.println("Register fail: " + message.getHeader().getDescription());
             ctx.close();
         }
     }
@@ -100,20 +105,21 @@ public class ClientHandler extends CommonHandler {
                 @Override
                 public void initChannel(SocketChannel ch) {
                     LocalProxyHandler localProxyHandler = new LocalProxyHandler(thisHandler,
-                            receiveMessage.getMetadata().getChannelId());
+                            receiveMessage.getHeader().getChannelId());
                     ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(), localProxyHandler);
 
-                    channelHandlerMap.put(receiveMessage.getMetadata().getChannelId(), localProxyHandler);
+                    channelHandlerMap.put(receiveMessage.getHeader().getChannelId(), localProxyHandler);
                     channelGroup.add(ch);
                 }
             });
         } catch (java.lang.Exception e) {
             e.printStackTrace();
             Message message = new Message();
-            message.setType(MessageType.DISCONNECTED);
-            message.getMetadata().setChannelId(receiveMessage.getMetadata().getChannelId());
+            MessageHeader header = message.getHeader();
+            header.setType(MessageType.DISCONNECTED);
+            header.setChannelId(receiveMessage.getHeader().getChannelId());
             ctx.writeAndFlush(message);
-            channelHandlerMap.remove(receiveMessage.getMetadata().getChannelId());
+            channelHandlerMap.remove(receiveMessage.getHeader().getChannelId());
         }
     }
 
@@ -121,7 +127,7 @@ public class ClientHandler extends CommonHandler {
      * if message.getType() == MessageType.DISCONNECTED
      */
     private void processDisconnected(Message message) {
-        String channelId = message.getMetadata().getChannelId();
+        String channelId = message.getHeader().getChannelId();
         CommonHandler handler = channelHandlerMap.get(channelId);
         if (handler != null) {
             handler.getCtx().close();
@@ -133,7 +139,7 @@ public class ClientHandler extends CommonHandler {
      * if message.getType() == MessageType.DATA
      */
     private void processData(Message message) {
-        String channelId = message.getMetadata().getChannelId();
+        String channelId = message.getHeader().getChannelId();
         CommonHandler handler = channelHandlerMap.get(channelId);
         if (handler != null) {
             ChannelHandlerContext ctx = handler.getCtx();

@@ -1,6 +1,7 @@
 package com.swust.common.protocol;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 
 /**
@@ -8,26 +9,26 @@ import lombok.experimental.Accessors;
  * @date : 2019/11/4 10:59
  * @description :   客户端和服务端直接通信的消息体
  */
-@Data
+
 @Accessors(chain = true)
 public class Message {
 
-    /**
-     * 消息类型
-     */
-    private MessageType type;
 
     /**
      * 数据包
      */
+    @Getter
+    @Setter
     private byte[] data;
 
     /**
-     * 附带的其他信息，如密码等
+     * 消息头，附带的其他信息
      */
-    private MessageMetadata metadata;
+    @Getter
+    @Setter
+    private MessageHeader header;
 
     public Message() {
-        this.metadata = new MessageMetadata();
+        this.header = new MessageHeader();
     }
 }
