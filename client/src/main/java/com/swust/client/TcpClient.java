@@ -1,11 +1,12 @@
 package com.swust.client;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.*;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-
-import java.io.IOException;
 
 /**
  * @author : LiuMing
@@ -14,9 +15,8 @@ import java.io.IOException;
  */
 public class TcpClient {
 
-    public void connect(String host, int port, ChannelInitializer channelInitializer) throws InterruptedException, IOException {
+    public void connect(String host, int port, ChannelInitializer channelInitializer) throws InterruptedException {
         NioEventLoopGroup workerGroup = new NioEventLoopGroup();
-
         try {
             Bootstrap b = new Bootstrap();
             b.group(workerGroup);

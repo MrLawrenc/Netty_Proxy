@@ -1,6 +1,8 @@
 package com.swust.common.protocol;
 
 
+import lombok.Getter;
+
 /**
  * @author : LiuMing
  * @date : 2019/11/4 10:58
@@ -32,23 +34,10 @@ public enum MessageType {
      * 心跳包
      */
     KEEPALIVE(6);
-
+    @Getter
     private int code;
 
     MessageType(int code) {
         this.code = code;
-    }
-
-    public int getCode() {
-        return code;
-    }
-
-    public static MessageType valueOf(int code) throws Exception {
-        for (MessageType item : MessageType.values()) {
-            if (item.code == code) {
-                return item;
-            }
-        }
-        throw new Exception("MessageType code error: " + code);
     }
 }

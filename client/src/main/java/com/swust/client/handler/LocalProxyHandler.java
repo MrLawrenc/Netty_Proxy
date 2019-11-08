@@ -26,7 +26,7 @@ public class LocalProxyHandler extends CommonHandler {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         byte[] data = (byte[]) msg;
         Message message = new Message();
         MessageHeader header = message.getHeader();
@@ -37,7 +37,7 @@ public class LocalProxyHandler extends CommonHandler {
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+    public void channelInactive(ChannelHandlerContext ctx) {
         Message message = new Message();
         MessageHeader header = message.getHeader();
         header.setType(MessageType.DISCONNECTED);

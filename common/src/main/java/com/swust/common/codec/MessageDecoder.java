@@ -19,7 +19,7 @@ import java.util.List;
 public class MessageDecoder extends MessageToMessageDecoder<ByteBuf> {
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
+    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out)  {
         int headerLen = msg.readInt();
         String headerStr = msg.readCharSequence(headerLen, CharsetUtil.UTF_8).toString();
         MessageHeader messageHeader = JSON.parseObject(headerStr, MessageHeader.class);
