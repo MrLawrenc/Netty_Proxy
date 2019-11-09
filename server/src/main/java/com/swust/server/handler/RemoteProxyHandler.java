@@ -26,7 +26,7 @@ public class RemoteProxyHandler extends CommonHandler {
      * 外部请求外网代理的端口时调用，保存的服务端channel会给内网客户端发送消息 proxyHandler.getCtx().writeAndFlush(message);
      */
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+    public void channelActive(ChannelHandlerContext ctx) {
         Message message = new Message();
         MessageHeader header = message.getHeader();
         header.setType(MessageType.CONNECTED);
@@ -35,7 +35,7 @@ public class RemoteProxyHandler extends CommonHandler {
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+    public void channelInactive(ChannelHandlerContext ctx) {
         Message message = new Message();
         MessageHeader messageHeader = new MessageHeader().setChannelId(ctx.channel().id().asLongText());
         messageHeader.setType(MessageType.DISCONNECTED);
@@ -44,7 +44,7 @@ public class RemoteProxyHandler extends CommonHandler {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         byte[] data = (byte[]) msg;
         Message message = new Message();
         MessageHeader header = message.getHeader();

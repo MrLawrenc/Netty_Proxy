@@ -15,7 +15,9 @@ import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author : LiuMing
@@ -29,7 +31,7 @@ public class ClientHandler extends CommonHandler {
     private String proxyAddress;
     private int proxyPort;
 
-    private ConcurrentHashMap<String, CommonHandler> channelHandlerMap = new ConcurrentHashMap<>();
+    private Map<String, CommonHandler> channelHandlerMap = Collections.synchronizedMap(new HashMap<>());
     private static ChannelGroup channelGroup = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
     public ClientHandler(int port, String password, String proxyAddress, int proxyPort) {
@@ -75,7 +77,7 @@ public class ClientHandler extends CommonHandler {
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws java.lang.Exception {
+    public void channelInactive(ChannelHandlerContext ctx) {
         channelGroup.close();
         System.out.println("Loss connection to  server, Please restart!");
     }
@@ -113,6 +115,7 @@ public class ClientHandler extends CommonHandler {
                 }
             });
         } catch (java.lang.Exception e) {
+            System.out.println("连接内网服务失败.............\n" + e.getMessage());
             e.printStackTrace();
             Message message = new Message();
             MessageHeader header = message.getHeader();

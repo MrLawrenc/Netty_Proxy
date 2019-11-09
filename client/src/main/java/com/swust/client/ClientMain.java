@@ -73,7 +73,7 @@ public class ClientMain {
             TcpClient tcpClient = new TcpClient();
             tcpClient.connect(serverAddress, Integer.parseInt(serverPort), new ChannelInitializer<SocketChannel>() {
                 @Override
-                public void initChannel(SocketChannel ch) throws Exception {
+                public void initChannel(SocketChannel ch) {
                     ClientHandler clientHandler = new ClientHandler(Integer.parseInt(remotePort), password,
                             proxyAddress, Integer.parseInt(proxyPort));
                     ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4),
