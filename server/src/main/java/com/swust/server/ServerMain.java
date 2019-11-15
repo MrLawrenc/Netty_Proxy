@@ -1,10 +1,10 @@
 package com.swust.server;
 
-import com.swust.server.handler.TcpServerHandler;
 import com.swust.common.cmd.CmdOptions;
 import com.swust.common.codec.MessageDecoder;
 import com.swust.common.codec.MessageEncoder;
 import com.swust.common.constant.Constant;
+import com.swust.server.handler.TcpServerHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
@@ -69,6 +69,7 @@ public class ServerMain {
                 @Override
                 public void initChannel(SocketChannel ch) {
                     TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
+                    //int为4字节，定义的长度字段(长度字段+消息体)
                     ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4),
                             new MessageDecoder(), new MessageEncoder(),
                             new IdleStateHandler(60, 30, 0),

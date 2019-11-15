@@ -20,7 +20,7 @@ public class CommonHandler extends ChannelInboundHandlerAdapter {
     /**
      * 默认读超时上限
      */
-    private static final byte DEFAULT_RECONNECTION_LIMIT = 5;
+    private static final byte DEFAULT_RECONNECTION_LIMIT = 2;
 
 
     @Override
