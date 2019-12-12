@@ -7,7 +7,6 @@ import com.swust.common.codec.MessageEncoder;
 import com.swust.common.constant.Constant;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.commons.cli.*;
 
@@ -76,7 +75,10 @@ public class ClientMain {
                 public void initChannel(SocketChannel ch) {
                     ClientHandler clientHandler = new ClientHandler(Integer.parseInt(remotePort), password,
                             proxyAddress, Integer.parseInt(proxyPort));
-                    ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4),
+//                    ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4),
+//                            new MessageDecoder(), new MessageEncoder(),
+//                            new IdleStateHandler(60, 30, 0), clientHandler);
+                    ch.pipeline().addLast(
                             new MessageDecoder(), new MessageEncoder(),
                             new IdleStateHandler(60, 30, 0), clientHandler);
                 }

@@ -14,7 +14,7 @@ import io.netty.channel.ChannelHandlerContext;
 public class LocalProxyHandler extends CommonHandler {
 
     /**
-     * 本机的netty客户端，该客户端和公网的netty服务端有一个长链接，使用该channel发送小道到公网netty服务端，
+     * 本机的netty客户端，该客户端和公网的netty服务端有一个长链接，使用该channel发送消息到公网netty服务端，
      * 之后服务端再将结果响应给外部的请求
      */
     private CommonHandler proxyHandler;

@@ -7,7 +7,6 @@ import com.swust.common.constant.Constant;
 import com.swust.server.handler.TcpServerHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.commons.cli.*;
 
@@ -70,10 +69,14 @@ public class ServerMain {
                 public void initChannel(SocketChannel ch) {
                     TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
                     //int为4字节，定义的长度字段(长度字段+消息体)
-                    ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4),
+                    ch.pipeline().addLast(
                             new MessageDecoder(), new MessageEncoder(),
                             new IdleStateHandler(60, 30, 0),
                             tcpServerHandler);
+//                    ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4),
+//                            new MessageDecoder(), new MessageEncoder(),
+//                            new IdleStateHandler(60, 30, 0),
+//                            tcpServerHandler);
                 }
             });
             if (success) {

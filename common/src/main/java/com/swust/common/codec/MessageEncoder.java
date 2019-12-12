@@ -18,7 +18,19 @@ import java.io.DataOutputStream;
 public class MessageEncoder extends MessageToByteEncoder<Message> {
 
     @Override
-    protected void encode(ChannelHandlerContext ctx, Message msg, ByteBuf out) throws Exception {
+    protected void encode(ChannelHandlerContext ctx, Message msg, ByteBuf byteBuf) throws Exception {
+        MessageHeader head = msg.getHeader();
+        byte[] headBytes = JSON.toJSONBytes(head);
+        byteBuf.writeInt(headBytes.length);
+        byteBuf.writeBytes(headBytes);
+
+        byteBuf.writeInt(msg.getData().length);
+        byteBuf.writeBytes(msg.getData());
+       /* System.out.println(out);
+        encode0(msg, out);*/
+    }
+
+    private void encode0(Message msg, ByteBuf out) throws Exception {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try (DataOutputStream dataOutputStream = new DataOutputStream(byteArrayOutputStream)) {
             MessageHeader header = msg.getHeader();
@@ -39,8 +51,29 @@ public class MessageEncoder extends MessageToByteEncoder<Message> {
             byte[] message = byteArrayOutputStream.toByteArray();
             out.writeInt(message.length);
             out.writeBytes(message);
-        }
 
+        }
+    }
+
+    private void encode1(Message msg, ByteBuf out) {
+        /*
+         * out实际是 PooledUnsafeDirectByteBuf
+         * */
+        MessageHeader header = msg.getHeader();
+        byte[] headerBytes;
+        try {
+            headerBytes = JSON.toJSONBytes(header);
+        } catch (Exception e) {
+            System.out.println("消息头解析错误.......................");
+            e.printStackTrace();
+            return;
+        }
+        out.writeInt(headerBytes.length);
+        out.writeBytes(headerBytes);
+        byte[] data = msg.getData();
+        if (data != null && data.length > 0) {
+            out.writeBytes(data);
+        }
     }
 
 }
