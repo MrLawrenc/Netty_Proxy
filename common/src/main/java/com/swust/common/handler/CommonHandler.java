@@ -2,6 +2,7 @@ package com.swust.common.handler;
 
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageType;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.timeout.IdleState;
@@ -29,12 +30,20 @@ public class CommonHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause)  {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        System.out.println(String.format("client/server exception(%s) ...............", cause.getMessage()));
         cause.printStackTrace();
+        Channel channel = ctx.channel();
+        if (!channel.isActive()) {
+            System.out.println("############### -- 客户端 -- " + channel.remoteAddress() + "  断开了连接！");
+            ctx.close();
+        } else {
+            ctx.fireExceptionCaught(cause);
+        }
     }
 
     @Override
-    public void userEventTriggered(ChannelHandlerContext ctx, Object evt)  {
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
         if (evt instanceof IdleStateEvent) {
             IdleStateEvent e = (IdleStateEvent) evt;
             if (e.state() == IdleState.READER_IDLE) {
@@ -45,6 +54,7 @@ public class CommonHandler extends ChannelInboundHandlerAdapter {
                     ctx.close();
                 }
             } else if (e.state() == IdleState.WRITER_IDLE) {
+                System.out.println("Write idle will write again.");
                 Message message = new Message();
                 message.getHeader().setType(MessageType.KEEPALIVE);
                 ctx.writeAndFlush(message);

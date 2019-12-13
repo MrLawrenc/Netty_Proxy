@@ -15,7 +15,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
  */
 public class TcpClient {
 
-    public void connect(String host, int port, ChannelInitializer channelInitializer) throws InterruptedException {
+    public void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws InterruptedException {
         NioEventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
             Bootstrap b = new Bootstrap();
