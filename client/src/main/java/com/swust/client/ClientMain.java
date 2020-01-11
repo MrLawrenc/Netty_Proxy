@@ -80,7 +80,7 @@ public class ClientMain {
 //                            new IdleStateHandler(60, 30, 0), clientHandler);
                     ch.pipeline().addLast(
                             new MessageDecoder(), new MessageEncoder(),
-                            new IdleStateHandler(60, 30, 0), clientHandler);
+                            new IdleStateHandler(60, 20, 0), clientHandler);
                 }
             });
         }

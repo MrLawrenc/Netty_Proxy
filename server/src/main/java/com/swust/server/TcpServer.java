@@ -4,6 +4,8 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 
 /**
  * @author : LiuMing
@@ -17,15 +19,18 @@ public class TcpServer {
     /**
      * tcp服务端初始化
      */
-    public boolean initTcpServer(int port, ChannelInitializer channelInitializer) {
+    public boolean initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
 
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
 
         try {
             ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
-                    .childHandler(channelInitializer).childOption(ChannelOption.SO_KEEPALIVE, true);
+            b.group(bossGroup, workerGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .handler(new LoggingHandler(LogLevel.INFO))
+                    .childHandler(channelInitializer)
+                    .childOption(ChannelOption.SO_KEEPALIVE, true);
             ChannelFuture channelFuture = b.bind(port).sync();
             tcpChannel = channelFuture.channel();
             tcpChannel.closeFuture().addListener((ChannelFutureListener) future -> {

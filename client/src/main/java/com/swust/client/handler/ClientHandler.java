@@ -70,7 +70,7 @@ public class ClientHandler extends CommonHandler {
             processData(message);
         } else if (type == MessageType.KEEPALIVE) {
             // 心跳包, 不处理
-            lossConnectCount = 0;
+            lossConnectCount.getAndSet(0);
         } else {
             throw new Exception("Unknown type: " + type);
         }
@@ -79,7 +79,7 @@ public class ClientHandler extends CommonHandler {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
         channelGroup.close();
-        System.out.println("Loss connection to  server, Please restart!");
+        logger.severe("Loss connection to  server, Please restart!");
     }
 
     /**
@@ -114,9 +114,8 @@ public class ClientHandler extends CommonHandler {
                     channelGroup.add(ch);
                 }
             });
-        } catch (java.lang.Exception e) {
-            System.out.println("连接内网服务失败.............\n" + e.getMessage());
-            e.printStackTrace();
+        } catch (Exception e) {
+            logger.throwing(getClass().getName(), "连接内网服务失败...........", e);
             Message message = new Message();
             MessageHeader header = message.getHeader();
             header.setType(MessageType.DISCONNECTED);
@@ -145,8 +144,12 @@ public class ClientHandler extends CommonHandler {
         String channelId = message.getHeader().getChannelId();
         CommonHandler handler = channelHandlerMap.get(channelId);
         if (handler != null) {
-            ChannelHandlerContext ctx = handler.getCtx();
-            ctx.writeAndFlush(message.getData());
+            try {
+                ChannelHandlerContext ctx = handler.getCtx();
+                ctx.writeAndFlush(message.getData());
+            } catch (Exception e) {
+                logger.throwing(getClass().getName(), "ctx=" + ctx, e);
+            }
         }
     }
 }

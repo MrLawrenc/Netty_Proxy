@@ -31,9 +31,14 @@ public enum MessageType {
      */
     DATA(5),
     /**
-     * 心跳包
+     * 客户端和服务端心跳包
      */
-    KEEPALIVE(6);
+    KEEPALIVE(6),
+
+    /**
+     * 服务端集群的心跳包
+     */
+    SERVER_KEEPALIVE(7);
     @Getter
     private int code;
 
