@@ -49,8 +49,7 @@ public class TcpServerHandler extends CommonHandler {
                 processData(message);
             } else if (type == MessageType.KEEPALIVE) {
                 // 心跳包
-                lossConnectCount = 0;
-                System.out.println("心跳包............");
+                lossConnectCount.getAndSet(0);
             } else {
                 throw new Exception("Unknown type: " + type);
             }
@@ -63,7 +62,7 @@ public class TcpServerHandler extends CommonHandler {
     public void channelInactive(ChannelHandlerContext ctx) {
         remoteConnectionServer.close();
         if (hasRegister) {
-            System.out.println("Stop server on port: " + port);
+           logger.severe("Stop server on port: " + port);
         }
     }
 
@@ -92,7 +91,7 @@ public class TcpServerHandler extends CommonHandler {
                 message.getHeader().setSuccess(true);
                 this.port = port;
                 hasRegister = true;
-                System.out.println("Register success, start server on port: " + port);
+                logger.info("Register success, start server on port: " + port);
             } catch (java.lang.Exception e) {
                 message.getHeader().setSuccess(false).setDescription(e.getMessage());
                 e.printStackTrace();
@@ -102,7 +101,7 @@ public class TcpServerHandler extends CommonHandler {
         ctx.writeAndFlush(message);
 
         if (!hasRegister) {
-            System.out.println("Client register error: " + message.getHeader().getDescription());
+            logger.severe("Client register error: " + message.getHeader().getDescription());
             ctx.close();
         }
     }

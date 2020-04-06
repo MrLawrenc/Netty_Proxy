@@ -1,15 +1,16 @@
 package com.swust.server;
 
-import com.swust.server.handler.TcpServerHandler;
 import com.swust.common.cmd.CmdOptions;
 import com.swust.common.codec.MessageDecoder;
 import com.swust.common.codec.MessageEncoder;
 import com.swust.common.constant.Constant;
+import com.swust.server.handler.TcpServerHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.commons.cli.*;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author : LiuMing
@@ -64,22 +65,32 @@ public class ServerMain {
             int port = Integer.parseInt(cmd.getOptionValue(CmdOptions.PORT.getLongOpt(), Constant.DEFAULT_PORT));
             String password = cmd.getOptionValue(CmdOptions.PASSWORD.getLongOpt(), Constant.DEFAULT_PASSWORD);
 
-            TcpServer tcpServer = new TcpServer();
-            boolean success = tcpServer.initTcpServer(port, new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel ch) {
-                    TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
-                    ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4),
-                            new MessageDecoder(), new MessageEncoder(),
-                            new IdleStateHandler(60, 30, 0),
-                            tcpServerHandler);
-                }
-            });
+            boolean success = start(port, password);
             if (success) {
                 System.out.println("Tcp server started on port " + port + "\nPassword is " + password);
             } else {
                 System.out.println("Tcp server boot failed " + port);
             }
         }
+    }
+
+
+    private static boolean start(int port, String password) {
+        TcpServer tcpServer = new TcpServer();
+        return tcpServer.initTcpServer(port, new ChannelInitializer<SocketChannel>() {
+            @Override
+            public void initChannel(SocketChannel ch) {
+                TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
+                //int为4字节，定义的长度字段(长度字段+消息体)
+                ch.pipeline().addLast(
+                        new MessageDecoder(), new MessageEncoder(),
+                        new IdleStateHandler(60, 20, 0, TimeUnit.SECONDS),
+                        tcpServerHandler);
+//                    ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4),
+//                            new MessageDecoder(), new MessageEncoder(),
+//                            new IdleStateHandler(60, 30, 0),
+//                            tcpServerHandler);
+            }
+        });
     }
 }

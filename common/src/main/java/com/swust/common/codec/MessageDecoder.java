@@ -4,11 +4,10 @@ import com.alibaba.fastjson.JSON;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageHeader;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.MessageToMessageDecoder;
-import io.netty.util.CharsetUtil;
+import io.netty.handler.codec.ReplayingDecoder;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -16,23 +15,19 @@ import java.util.List;
  * @date : 2019/11/4 15:03
  * @description :   消息解码器
  */
-public class MessageDecoder extends MessageToMessageDecoder<ByteBuf> {
-
+public class MessageDecoder extends ReplayingDecoder<Message> {
     @Override
-    protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out)  {
-        int headerLen = msg.readInt();
-        String headerStr = msg.readCharSequence(headerLen, CharsetUtil.UTF_8).toString();
-        MessageHeader messageHeader = JSON.parseObject(headerStr, MessageHeader.class);
-        byte[] bytes = null;
-        /*
-         * 注意 ByteBufUtil.getBytes(msg)方法不会改变readIndex，因此不能使用while，不然会一直死循环，如果使用msg.readByte()则
-         * 需要一直while读
-         */
-        if (msg.isReadable()) {
+    protected void decode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> out) {
+        int headLen = byteBuf.readInt();
+        String head = byteBuf.readCharSequence(headLen, StandardCharsets.UTF_8).toString();
 
-            bytes = ByteBufUtil.getBytes(msg);
-        }
-        out.add(new Message().setHeader(messageHeader).setData(bytes));
+
+        int bodyLen = byteBuf.readInt();
+
+        byte[] data = new byte[bodyLen];
+        byteBuf.readBytes(data);
+
+        Message message = new Message(JSON.parseObject(head, MessageHeader.class), data);
+        out.add(message);
     }
-
 }

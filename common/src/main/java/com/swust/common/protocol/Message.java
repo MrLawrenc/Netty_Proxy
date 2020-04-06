@@ -1,7 +1,10 @@
 package com.swust.common.protocol;
 
+import com.swust.common.constant.Constant;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.Accessors;
 
 /**
@@ -11,15 +14,10 @@ import lombok.experimental.Accessors;
  */
 
 @Accessors(chain = true)
+@AllArgsConstructor
+@ToString
 public class Message {
 
-
-    /**
-     * 数据包
-     */
-    @Getter
-    @Setter
-    private byte[] data;
 
     /**
      * 消息头，附带的其他信息
@@ -27,6 +25,13 @@ public class Message {
     @Getter
     @Setter
     private MessageHeader header;
+    /**
+     * 数据包,不做data=null的校验
+     */
+    @Getter
+    @Setter
+    private byte[] data = Constant.NULL_TOKEN.getBytes();
+
 
     public Message() {
         this.header = new MessageHeader();

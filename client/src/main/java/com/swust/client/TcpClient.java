@@ -7,6 +7,8 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 
 /**
  * @author : LiuMing
@@ -15,14 +17,15 @@ import io.netty.channel.socket.nio.NioSocketChannel;
  */
 public class TcpClient {
 
-    public void connect(String host, int port, ChannelInitializer channelInitializer) throws InterruptedException {
+    public void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws InterruptedException {
         NioEventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
             Bootstrap b = new Bootstrap();
-            b.group(workerGroup);
-            b.channel(NioSocketChannel.class);
-            b.option(ChannelOption.SO_KEEPALIVE, true);
-            b.handler(channelInitializer);
+            b.group(workerGroup)
+                    .channel(NioSocketChannel.class)
+                    .handler(new LoggingHandler(LogLevel.INFO))
+                    .option(ChannelOption.SO_KEEPALIVE, true)
+                    .handler(channelInitializer);
 
             Channel channel = b.connect(host, port).sync().channel();
             channel.closeFuture().addListener((ChannelFutureListener) future -> workerGroup.shutdownGracefully());
