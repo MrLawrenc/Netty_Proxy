@@ -15,9 +15,7 @@ import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author : LiuMing
@@ -63,6 +61,7 @@ public class ClientHandler extends CommonHandler {
         if (type == MessageType.REGISTER_RESULT) {
             processRegisterResult(message);
         } else if (type == MessageType.CONNECTED) {
+            registerMsg = message;
             processConnected(message);
         } else if (type == MessageType.DISCONNECTED) {
             processDisconnected(message);
@@ -112,6 +111,8 @@ public class ClientHandler extends CommonHandler {
 
                     channelHandlerMap.put(receiveMessage.getHeader().getChannelId(), localProxyHandler);
                     channelGroup.add(ch);
+                    heartPkg(localProxyHandler);
+                    logger.info("准备连接内网服务 " + proxyAddress + ":" + proxyPort + " 成功...........");
                 }
             });
         } catch (Exception e) {
@@ -124,6 +125,11 @@ public class ClientHandler extends CommonHandler {
             channelHandlerMap.remove(receiveMessage.getHeader().getChannelId());
         }
     }
+
+    /**
+     * 保存注册消息
+     */
+    private Message registerMsg = null;
 
     /**
      * if message.getType() == MessageType.DISCONNECTED
@@ -151,5 +157,28 @@ public class ClientHandler extends CommonHandler {
                 logger.throwing(getClass().getName(), "ctx=" + ctx, e);
             }
         }
+    }
+
+    /**
+     * 维持内网连接,6h执行一次
+     */
+    public void heartPkg(LocalProxyHandler localProxyHandler) {
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    localProxyHandler.getCtx().writeAndFlush("heart pkg");
+                } catch (Exception e) {
+                    logger.warning("time  warning ..................");
+                }
+            }
+        }, 1000 * 60 * 60 * 6, 1000 * 60 * 60 * 6);
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        super.exceptionCaught(ctx, cause);
+        logger.warning("netty proxy client loss connection will restart..................\n{}" + registerMsg.getHeader());
+        processConnected(registerMsg);
     }
 }

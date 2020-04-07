@@ -38,14 +38,9 @@ public class CommonHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         logger.warning(String.format("client/server exception(%s) ...............", cause.getMessage()));
-        cause.printStackTrace();
         Channel channel = ctx.channel();
-        if (!channel.isActive()) {
-            logger.warning("############### -- 客户端 -- " + channel.remoteAddress() + "  断开了连接！");
-            ctx.close();
-        } else {
-            ctx.fireExceptionCaught(cause);
-        }
+        logger.warning("#### exceptionCaught #### " + String.format("localAddr:%s  remoteAddr:%s", channel.localAddress(), channel.remoteAddress()) + " obj->" + this.getClass().getSimpleName());
+        ctx.close();
     }
 
     @Override
