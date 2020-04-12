@@ -1,6 +1,7 @@
 package com.swust.server.handler;
 
 import com.alibaba.fastjson.JSON;
+import com.swust.common.exception.ServerException;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageType;
@@ -12,7 +13,13 @@ import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.concurrent.GlobalEventExecutor;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author : LiuMing
@@ -26,7 +33,18 @@ public class TcpServerHandler extends CommonHandler {
 
     private static ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
-    private boolean hasRegister = false;
+    /**
+     * 注册信息保存
+     */
+    protected static final Map<ChannelHandlerContext, Boolean> REGISTER_STATE = new HashMap<>();
+
+
+    /**
+     * 默认读超时上限
+     */
+    private static final byte DEFAULT_RECONNECTION_LIMIT = 5;
+    private static final Map<ChannelHandlerContext, Integer> DEFAULT_COUNT = new HashMap<>();
+
 
     public TcpServerHandler(String password) {
         this.password = password;
@@ -42,29 +60,25 @@ public class TcpServerHandler extends CommonHandler {
         //客户端注册
         if (type == MessageType.REGISTER) {
             processRegister(message);
-        } else if (hasRegister) {
+        } else {
             if (type == MessageType.DISCONNECTED) {
                 processDisconnected(message);
             } else if (type == MessageType.DATA) {
                 processData(message);
             } else if (type == MessageType.KEEPALIVE) {
                 // 心跳包
-                lossConnectCount.getAndSet(0);
+                DEFAULT_COUNT.put(ctx, 0);
             } else {
-                throw new Exception("Unknown type: " + type);
+                throw new ServerException("Unknown type: " + type);
             }
-        } else {
-            ctx.close();
         }
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
-        remoteConnectionServer.close();
-        if (hasRegister) {
-           logger.severe("Stop server on port: " + port);
-        }
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        logger.warning(String.format("server channelInactive channelId:%s ", ctx.channel().id()));
     }
+
 
     /**
      * 处理客户端注册,每个客户端注册成功都会启动一个服务，绑定客户端指定的端口
@@ -79,7 +93,7 @@ public class TcpServerHandler extends CommonHandler {
             int port = message.getHeader().getOpenTcpPort();
             try {
                 TcpServerHandler thisHandler = this;
-                remoteConnectionServer.initTcpServer(port, new ChannelInitializer<SocketChannel>() {
+                boolean b = remoteConnectionServer.initTcpServer(port, new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) {
                         ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(),
@@ -87,23 +101,22 @@ public class TcpServerHandler extends CommonHandler {
                         channels.add(ch);
                     }
                 });
+                if (!b) {
+                    logger.info(" start server on port: " + port + "  fail!");
+                    return;
+                }
 
                 message.getHeader().setSuccess(true);
                 this.port = port;
-                hasRegister = true;
                 logger.info("Register success, start server on port: " + port);
             } catch (java.lang.Exception e) {
                 message.getHeader().setSuccess(false).setDescription(e.getMessage());
                 e.printStackTrace();
+                return;
             }
         }
         message.getHeader().setType(MessageType.REGISTER_RESULT);
         ctx.writeAndFlush(message);
-
-        if (!hasRegister) {
-            logger.severe("Client register error: " + message.getHeader().getDescription());
-            ctx.close();
-        }
     }
 
     /**
@@ -120,4 +133,28 @@ public class TcpServerHandler extends CommonHandler {
     private void processDisconnected(Message message) {
         channels.close(channel -> channel.id().asLongText().equals(message.getHeader().getChannelId()));
     }
+
+
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (evt instanceof IdleStateEvent) {
+            Integer count = DEFAULT_COUNT.get(ctx);
+            IdleStateEvent e = (IdleStateEvent) evt;
+            if (e.state() == IdleState.READER_IDLE) {
+                if (Objects.isNull(count)) {
+                    count = 0;
+                }
+                DEFAULT_COUNT.put(ctx, count++);
+                if (count > DEFAULT_RECONNECTION_LIMIT) {
+                    DEFAULT_COUNT.remove(ctx);
+                    logger.severe("Read idle  will loss connection. retryNum:" + count);
+                    ctx.close();
+                }
+            }
+        } else {
+            super.userEventTriggered(ctx, evt);
+        }
+    }
+
+
 }

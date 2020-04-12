@@ -1,6 +1,7 @@
 package com.swust.client.handler;
 
 import com.alibaba.fastjson.JSON;
+import com.swust.client.ClientMain;
 import com.swust.client.TcpClient;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
@@ -13,6 +14,8 @@ import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
 import java.util.*;
@@ -61,7 +64,6 @@ public class ClientHandler extends CommonHandler {
         if (type == MessageType.REGISTER_RESULT) {
             processRegisterResult(message);
         } else if (type == MessageType.CONNECTED) {
-            registerMsg = message;
             processConnected(message);
         } else if (type == MessageType.DISCONNECTED) {
             processDisconnected(message);
@@ -69,16 +71,21 @@ public class ClientHandler extends CommonHandler {
             processData(message);
         } else if (type == MessageType.KEEPALIVE) {
             // 心跳包, 不处理
-            lossConnectCount.getAndSet(0);
+            //lossConnectCount.getAndSet(0);
         } else {
             throw new Exception("Unknown type: " + type);
         }
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
-        channelGroup.close();
-        logger.severe("Loss connection to  server, Please restart!");
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        super.channelInactive(ctx);
+        try {
+            logger.warning(String.format("will close channelId:%s", ctx.channel().id()));
+            logger.info("will restart client...................");
+        } finally {
+            ClientMain.start();
+        }
     }
 
     /**
@@ -111,8 +118,6 @@ public class ClientHandler extends CommonHandler {
 
                     channelHandlerMap.put(receiveMessage.getHeader().getChannelId(), localProxyHandler);
                     channelGroup.add(ch);
-                    heartPkg(localProxyHandler);
-                    logger.info("准备连接内网服务 " + proxyAddress + ":" + proxyPort + " 成功...........");
                 }
             });
         } catch (Exception e) {
@@ -125,11 +130,6 @@ public class ClientHandler extends CommonHandler {
             channelHandlerMap.remove(receiveMessage.getHeader().getChannelId());
         }
     }
-
-    /**
-     * 保存注册消息
-     */
-    private Message registerMsg = null;
 
     /**
      * if message.getType() == MessageType.DISCONNECTED
@@ -176,9 +176,16 @@ public class ClientHandler extends CommonHandler {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        super.exceptionCaught(ctx, cause);
-        logger.warning("netty proxy client loss connection will restart..................\n{}" + registerMsg.getHeader());
-        processConnected(registerMsg);
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+        if (evt instanceof IdleStateEvent) {
+            IdleStateEvent e = (IdleStateEvent) evt;
+            if (e.state() == IdleState.WRITER_IDLE) {
+                Message message = new Message();
+                message.getHeader().setType(MessageType.KEEPALIVE);
+                ctx.writeAndFlush(message);
+            }
+        } else {
+            super.userEventTriggered(ctx, evt);
+        }
     }
 }

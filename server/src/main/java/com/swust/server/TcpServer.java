@@ -7,13 +7,15 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import java.util.logging.Logger;
+
 /**
  * @author : LiuMing
  * @date : 2019/11/4 10:37
  * @description :   Tcp服务端
  */
 public class TcpServer {
-
+    protected Logger logger = Logger.getGlobal();
     private Channel tcpChannel;
 
     /**
@@ -38,7 +40,8 @@ public class TcpServer {
                 bossGroup.shutdownGracefully();
             });
         } catch (Exception e) {
-            System.out.println("服务端关闭..............");
+            logger.warning("start fail! will close group!");
+            e.printStackTrace();
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
             return false;

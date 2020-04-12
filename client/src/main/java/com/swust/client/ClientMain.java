@@ -10,12 +10,15 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.commons.cli.*;
 
+import java.util.logging.Logger;
+
 /**
  * @author : LiuMing
  * @date : 2019/11/4 14:15
  * @description :   内网的netty客户端，该客户端内部嵌了一个客户端，内部的客户端是访问本地的应用
  */
 public class ClientMain {
+    private static Logger logger = Logger.getGlobal();
 
     public static void main(String[] args) throws Exception {
 
@@ -43,46 +46,57 @@ public class ClientMain {
         } else {
 
             //opt和longOpt都可以拿到命令对应的值
-            String serverAddress = cmd.getOptionValue(CmdOptions.HOST.getOpt());
+            serverAddress = cmd.getOptionValue(CmdOptions.HOST.getOpt());
             if (serverAddress == null) {
-                System.out.println("server_addr cannot be null");
+                logger.severe("server_addr cannot be null");
                 return;
             }
-            String serverPort = cmd.getOptionValue(CmdOptions.PORT.getOpt());
+            serverPort = cmd.getOptionValue(CmdOptions.PORT.getOpt());
             if (serverPort == null) {
-                System.out.println("server_port cannot be null");
+                logger.severe("server_port cannot be null");
                 return;
             }
-            String password = cmd.getOptionValue(CmdOptions.PASSWORD.getOpt());
-            String proxyAddress = cmd.getOptionValue(CmdOptions.PROXY_HOST.getOpt());
+            password = cmd.getOptionValue(CmdOptions.PASSWORD.getOpt());
+            proxyAddress = cmd.getOptionValue(CmdOptions.PROXY_HOST.getOpt());
             if (proxyAddress == null) {
-                System.out.println("proxy_addr cannot be null");
+                logger.severe("proxy_addr cannot be null");
                 return;
             }
-            String proxyPort = cmd.getOptionValue(CmdOptions.PROXY_PORT.getOpt());
+            proxyPort = cmd.getOptionValue(CmdOptions.PROXY_PORT.getOpt());
             if (proxyPort == null) {
-                System.out.println("proxy_port cannot be null");
+                logger.severe("proxy_port cannot be null");
                 return;
             }
-            String remotePort = cmd.getOptionValue(CmdOptions.REMOTE_PORT.getOpt());
+            remotePort = cmd.getOptionValue(CmdOptions.REMOTE_PORT.getOpt());
             if (remotePort == null) {
-                System.out.println("remote_port cannot be null");
+                logger.severe("remote_port cannot be null");
                 return;
             }
-            TcpClient tcpClient = new TcpClient();
-            tcpClient.connect(serverAddress, Integer.parseInt(serverPort), new ChannelInitializer<SocketChannel>() {
-                @Override
-                public void initChannel(SocketChannel ch) {
-                    ClientHandler clientHandler = new ClientHandler(Integer.parseInt(remotePort), password,
-                            proxyAddress, Integer.parseInt(proxyPort));
+            start();
+        }
+    }
+
+    private static String serverAddress;
+    private static String serverPort;
+    private static String proxyAddress;
+    private static String proxyPort;
+    private static String password;
+    private static String remotePort;
+
+    public static void start() throws Exception {
+        TcpClient tcpClient = new TcpClient();
+        tcpClient.connect(serverAddress, Integer.parseInt(serverPort), new ChannelInitializer<SocketChannel>() {
+            @Override
+            public void initChannel(SocketChannel ch) {
+                ClientHandler clientHandler = new ClientHandler(Integer.parseInt(remotePort), password,
+                        proxyAddress, Integer.parseInt(proxyPort));
 //                    ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4),
 //                            new MessageDecoder(), new MessageEncoder(),
 //                            new IdleStateHandler(60, 30, 0), clientHandler);
-                    ch.pipeline().addLast(
-                            new MessageDecoder(), new MessageEncoder(),
-                            new IdleStateHandler(60, 20, 0), clientHandler);
-                }
-            });
-        }
+                ch.pipeline().addLast(
+                        new MessageDecoder(), new MessageEncoder(),
+                        new IdleStateHandler(60, 20, 0), clientHandler);
+            }
+        });
     }
 }

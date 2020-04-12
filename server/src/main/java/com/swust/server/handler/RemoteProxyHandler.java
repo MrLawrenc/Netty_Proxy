@@ -5,14 +5,17 @@ import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageHeader;
 import com.swust.common.protocol.MessageType;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+
+import java.util.logging.Logger;
 
 /**
  * @author : LiuMing
  * @date : 2019/11/4 13:54
  * @description :   代理服务器的handler，当请求公网暴露的代理端口时，会转发到相应的客户端，
  */
-public class RemoteProxyHandler extends CommonHandler {
-
+public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
+    private Logger logger = Logger.getGlobal();
     /**
      * 当前的netty服务端，转发请求，将来自外网的请求转发到内网，将来自内网的响应响应给外部客户端
      */
@@ -36,6 +39,7 @@ public class RemoteProxyHandler extends CommonHandler {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
+        logger.warning(String.format("will close proxy service %s", ctx.channel().localAddress()));
         Message message = new Message();
         MessageHeader messageHeader = new MessageHeader().setChannelId(ctx.channel().id().asLongText());
         messageHeader.setType(MessageType.DISCONNECTED);
