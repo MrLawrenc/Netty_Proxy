@@ -40,11 +40,7 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
         logger.warning(String.format("will close proxy service %s", ctx.channel().localAddress()));
-        Message message = new Message();
-        MessageHeader messageHeader = new MessageHeader().setChannelId(ctx.channel().id().asLongText());
-        messageHeader.setType(MessageType.DISCONNECTED);
-        message.setHeader(messageHeader);
-        proxyHandler.getCtx().writeAndFlush(message);
+        ctx.close();
     }
 
     @Override

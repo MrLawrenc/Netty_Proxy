@@ -1,5 +1,6 @@
 package com.swust.client;
 
+import com.swust.common.exception.ClientException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -17,7 +18,7 @@ import io.netty.handler.logging.LoggingHandler;
  */
 public class TcpClient {
 
-    public void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws InterruptedException {
+    public void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws ClientException {
         NioEventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
             Bootstrap b = new Bootstrap();
@@ -31,7 +32,7 @@ public class TcpClient {
             channel.closeFuture().addListener((ChannelFutureListener) future -> workerGroup.shutdownGracefully());
         } catch (Exception e) {
             workerGroup.shutdownGracefully();
-            throw e;
+            throw new ClientException(e);
         }
     }
 }

@@ -1,7 +1,5 @@
 package com.swust.common.config;
 
-import com.sun.corba.se.impl.activation.ServerMain;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.logging.LogManager;
@@ -18,8 +16,23 @@ public class LogFormatter extends SimpleFormatter {
 
 
     public static void init() throws Exception {
-        System.setProperty("java.util.logging.config.file", ServerMain.class.getClassLoader().getResource("log.properties").getPath());
-        LogManager.getLogManager().readConfiguration();
+/*        ClassLoader classLoader = LogFormatter.class.getClassLoader();
+        URL resource = classLoader.getResource("log.properties");
+        System.out.println(resource.getPath());
+
+        InputStream in = LogFormatter.class.getResourceAsStream("/log.properties");
+        Properties p = new Properties();
+        p.load(in);*/
+
+    /*    File file = new File("");
+        System.out.println(file.getAbsolutePath());*/
+
+        //打为jar包之后读取不到配置
+        try {
+            System.setProperty("java.util.logging.config.file", LogFormatter.class.getResource("log.properties").getPath());
+            LogManager.getLogManager().readConfiguration();
+        } catch (Exception ignore) {
+        }
     }
 
     @Override

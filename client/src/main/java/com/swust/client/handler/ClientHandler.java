@@ -3,6 +3,7 @@ package com.swust.client.handler;
 import com.alibaba.fastjson.JSON;
 import com.swust.client.ClientMain;
 import com.swust.client.TcpClient;
+import com.swust.common.exception.ClientException;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageHeader;
@@ -19,6 +20,8 @@ import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author : LiuMing
@@ -73,7 +76,7 @@ public class ClientHandler extends CommonHandler {
             // 心跳包, 不处理
             //lossConnectCount.getAndSet(0);
         } else {
-            throw new Exception("Unknown type: " + type);
+            throw new ClientException("Unknown type: " + type);
         }
     }
 
@@ -84,7 +87,27 @@ public class ClientHandler extends CommonHandler {
             logger.warning(String.format("will close channelId:%s", ctx.channel().id()));
             logger.info("will restart client...................");
         } finally {
-            ClientMain.start();
+
+            CompletableFuture.runAsync(() -> {
+                boolean flag = true;
+                int sleep = 1;
+                while (flag) {
+                    try {
+                        ctx.close();
+                        ClientMain.start();
+                        flag = false;
+                    } catch (ClientException e) {
+                        logger.severe("restart clint fail! will sleep "+sleep+" ms!");
+                        try {
+                            TimeUnit.SECONDS.sleep(sleep);
+                            sleep <<= 1;
+                        } catch (InterruptedException ignored) {
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                }
+
+            });
         }
     }
 

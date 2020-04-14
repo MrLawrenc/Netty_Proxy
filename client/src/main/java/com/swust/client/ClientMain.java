@@ -4,7 +4,9 @@ import com.swust.client.handler.ClientHandler;
 import com.swust.common.cmd.CmdOptions;
 import com.swust.common.codec.MessageDecoder;
 import com.swust.common.codec.MessageEncoder;
+import com.swust.common.config.LogFormatter;
 import com.swust.common.constant.Constant;
+import com.swust.common.exception.ClientException;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -21,7 +23,7 @@ public class ClientMain {
     private static Logger logger = Logger.getGlobal();
 
     public static void main(String[] args) throws Exception {
-
+        LogFormatter.init();
         Options options = new Options();
         options.addOption(CmdOptions.HELP.getOpt(), CmdOptions.HELP.getLongOpt(),
                 CmdOptions.HELP.isHasArgs(), CmdOptions.HELP.getDescription());
@@ -83,7 +85,7 @@ public class ClientMain {
     private static String password;
     private static String remotePort;
 
-    public static void start() throws Exception {
+    public static void start() throws ClientException {
         TcpClient tcpClient = new TcpClient();
         tcpClient.connect(serverAddress, Integer.parseInt(serverPort), new ChannelInitializer<SocketChannel>() {
             @Override

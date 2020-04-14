@@ -10,4 +10,8 @@ public class ClientException extends ProxyException {
     public ClientException(String message) {
         super(message);
     }
+
+    public ClientException(Throwable cause) {
+        super(cause);
+    }
 }
