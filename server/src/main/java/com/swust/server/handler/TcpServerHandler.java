@@ -6,6 +6,7 @@ import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageType;
 import com.swust.server.TcpServer;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.group.ChannelGroup;
@@ -20,6 +21,7 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author : LiuMing
@@ -59,7 +61,7 @@ public class TcpServerHandler extends CommonHandler {
         MessageType type = message.getHeader().getType();
         //客户端注册
         if (type == MessageType.REGISTER) {
-            processRegister(message);
+            processRegister(ctx, message);
         } else {
             if (type == MessageType.DISCONNECTED) {
                 processDisconnected(message);
@@ -76,14 +78,20 @@ public class TcpServerHandler extends CommonHandler {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.warning(String.format("server channelInactive channelId:%s ", ctx.channel().id()));
+        logger.warning("close proxy  client channel port：" + ctx.channel().remoteAddress());
     }
 
+    /**
+     * 维持客户端与当前暴露出去的代理服务端联系
+     */
+    private static Map<SocketChannel, ChannelHandlerContext> ctxMap = new HashMap<>();
 
     /**
      * 处理客户端注册,每个客户端注册成功都会启动一个服务，绑定客户端指定的端口
+     *
+     * @param ctx 与当前服务端保持连接的ctx
      */
-    private void processRegister(Message message) {
+    private void processRegister(ChannelHandlerContext ctx, Message message) {
         String password = message.getHeader().getPassword();
 
         if (this.password == null || !this.password.equals(password)) {
@@ -99,6 +107,7 @@ public class TcpServerHandler extends CommonHandler {
                         ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(),
                                 new RemoteProxyHandler(thisHandler));
                         channels.add(ch);
+                        ctxMap.put(ch, ctx);
                     }
                 });
                 if (!b) {
@@ -128,10 +137,21 @@ public class TcpServerHandler extends CommonHandler {
     }
 
     /**
-     * 断开
+     * 断开,先关闭外网暴露的代理，在关闭连接的客户端
      */
     private void processDisconnected(Message message) {
-        channels.close(channel -> channel.id().asLongText().equals(message.getHeader().getChannelId()));
+        AtomicReference<Channel> target = new AtomicReference<>();
+        channels.close(channel -> {
+            if (channel.id().asLongText().equals(message.getHeader().getChannelId())) {
+                logger.severe(String.format("proxy service send disconnect msg! proxy : %s", channel.localAddress()));
+                target.set(channel);
+                return true;
+            }
+            return false;
+        }).awaitUninterruptibly();
+        if (Objects.nonNull(target.get())) {
+            logger.info("step2: find target channel,will close proxy client! ");
+        }
     }
 
 

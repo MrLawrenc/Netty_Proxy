@@ -7,6 +7,9 @@ import com.swust.common.protocol.MessageType;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
 import java.util.logging.Logger;
 
 /**
@@ -39,8 +42,25 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        logger.warning(String.format("will close proxy service %s", ctx.channel().localAddress()));
-        ctx.close();
+        Message message = new Message();
+        MessageHeader header = message.getHeader();
+        header.setType(MessageType.DISCONNECTED);
+        header.setChannelId(ctx.channel().id().asLongText());
+        proxyHandler.getCtx().writeAndFlush(message);
+    }
+
+    public static void main(String[] args) throws Exception {
+        String cmd = "netstat  -aon|findstr  ";
+        String[] c = {};
+        Process process = Runtime.getRuntime().exec(cmd + " 64572");
+        BufferedReader bufferedReader = new BufferedReader(
+                new InputStreamReader(process.getInputStream(), "GBK"));
+        String line = null;
+        StringBuilder stringBuilder = new StringBuilder();
+        while ((line = bufferedReader.readLine()) != null) {
+            stringBuilder.append(line + "\n");
+        }
+        System.out.println(stringBuilder);
     }
 
     @Override
@@ -52,5 +72,24 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
         message.setData(data);
         header.setChannelId(ctx.channel().id().asLongText());
         proxyHandler.getCtx().writeAndFlush(message);
+    }
+
+    public String execLinux(String cmd) {
+        try {
+            String[] cmdArray = {"/bin/sh", "-c", cmd};
+            Process process = Runtime.getRuntime().exec(cmdArray);
+            LineNumberReader br = new LineNumberReader(new InputStreamReader(
+                    process.getInputStream()));
+            StringBuffer sb = new StringBuffer();
+            String line;
+            while ((line = br.readLine()) != null) {
+                System.out.println(line);
+                sb.append(line).append("\n");
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }
