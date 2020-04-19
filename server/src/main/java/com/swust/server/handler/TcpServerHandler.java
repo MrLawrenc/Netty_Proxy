@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.swust.common.exception.ServerException;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
+import com.swust.common.protocol.MessageHeader;
 import com.swust.common.protocol.MessageType;
 import com.swust.server.TcpServer;
 import io.netty.channel.Channel;
@@ -21,7 +22,6 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author : LiuMing
@@ -63,7 +63,7 @@ public class TcpServerHandler extends CommonHandler {
             processRegister(ctx, message);
         } else {
             if (type == MessageType.DISCONNECTED) {
-                processDisconnected(message);
+                processDisconnected(ctx, message);
             } else if (type == MessageType.DATA) {
                 processData(message);
             } else if (type == MessageType.KEEPALIVE) {
@@ -78,6 +78,9 @@ public class TcpServerHandler extends CommonHandler {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         logger.warning("服务端触发channelInactive local：" + ctx.channel().localAddress() + "  remote:" + ctx.channel().remoteAddress());
+        logger.warning("will close server proxy!");
+        ctxMap.get(ctx.channel()).getChannel().close();
+        ctxMap.remove(ctx.channel());
     }
 
     /**
@@ -136,20 +139,19 @@ public class TcpServerHandler extends CommonHandler {
     /**
      * 断开,先关闭外网暴露的代理，在关闭连接的客户端
      */
-    private void processDisconnected(Message message) throws InterruptedException {
-        AtomicReference<Channel> target = new AtomicReference<>();
-        channels.close(channel -> {
-            if (channel.id().asLongText().equals(message.getHeader().getChannelId())) {
-                logger.severe(String.format("proxy service send disconnect msg! proxy : %s", channel.localAddress()));
-                target.set(channel);
-                return true;
-            }
-            return false;
-        }).awaitUninterruptibly();
-        if (Objects.nonNull(target.get())) {
-            logger.info("step2: find target channel,will close proxy client! ");
-            target.get().close().sync();
+    private void processDisconnected(ChannelHandlerContext channelClient, Message message) throws InterruptedException {
+        Channel channel = channelClient.channel();
+        TcpServer proxyServer = ctxMap.get(channel);
+        if (Objects.nonNull(proxyServer)) {
+            logger.warning("收到代理客户端的关闭请求! local:" + channel.localAddress() + "  remote:" + channel.remoteAddress());
+            proxyServer.getChannel().close();
         }
+
+        Message newMessage = new Message();
+        MessageHeader header = newMessage.getHeader();
+        header.setType(MessageType.DISCONNECTED);
+        header.setChannelId(message.getHeader().getChannelId());
+        channelClient.writeAndFlush(newMessage);
     }
 
 

@@ -37,7 +37,7 @@ public class ClientHandler extends CommonHandler {
     private String proxyAddress;
     private int proxyPort;
 
-    private Map<String, CommonHandler> channelHandlerMap = Collections.synchronizedMap(new HashMap<>());
+    private Map<String, Channel> channelHandlerMap = Collections.synchronizedMap(new HashMap<>());
     private static ChannelGroup channelGroup = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
     public ClientHandler(int port, String password, String proxyAddress, int proxyPort) {
@@ -67,39 +67,41 @@ public class ClientHandler extends CommonHandler {
         if (type == MessageType.REGISTER_RESULT) {
             processRegisterResult(message);
         } else if (type == MessageType.CONNECTED) {
-            processConnected(ctx.channel(),message);
+            processConnected(ctx.channel(), message);
         } else if (type == MessageType.DATA) {
             processData(message);
         } else if (type == MessageType.DISCONNECTED) {
-            processDisconnected(message);
+            processDisconnected(ctx.channel(), message);
         } else if (type == MessageType.KEEPALIVE) {
         } else {
             throw new ClientException("Unknown type: " + type);
         }
     }
 
+    private static ConcurrentHashMap<Channel, Channel> channelMap = new ConcurrentHashMap<>();
+
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.warning(String.format("will close channelId:%s", ctx.channel().remoteAddress()));
-        logger.info("will restart client...................");
-
+        Channel channel = ctx.channel();
+        logger.warning(String.format("触发客户端channelInactive remote:%s local:%s", channel.remoteAddress(), channel.localAddress()));
+        logger.info("will close client proxy!");
+        channelMap.get(ctx.channel()).close();
         CompletableFuture.runAsync(() -> {
-            boolean flag = true;
-            int sleep = 1;
-            while (flag) {
+            int sleep = 10;
+            while (true) {
                 try {
-                    CHANNEL_HASH_MAP.get(ctx.channel()).close().sync();
-                    ctx.close().sync();
-                    ClientMain.start();
-                    flag = false;
-                } catch (ClientException e) {
-                    logger.severe("restart clint fail! will sleep " + sleep + " ms!");
-                    try {
-                        TimeUnit.SECONDS.sleep(sleep);
-                        sleep <<= 1;
-                    } catch (InterruptedException ignored) {
+                    Channel newChannel = ClientMain.start();
+                    if (Objects.nonNull(newChannel)) {
+                        logger.info("重启客户端成功.............");
+                        return;
                     }
                 } catch (Throwable ignored) {
+                }
+                logger.severe("restart clint fail! will sleep " + sleep + " ms!");
+                try {
+                    TimeUnit.SECONDS.sleep(sleep);
+                    sleep <<= 1;
+                } catch (InterruptedException ignored) {
                 }
             }
 
@@ -124,7 +126,7 @@ public class ClientHandler extends CommonHandler {
      * 该请求来源于，请求外网暴露的端口，外网通过netty服务端转发来到这里的
      * 请求内部代理服务，建立netty客户端，请求访问本地的服务，获取返回结果
      */
-    private void processConnected(Channel serverChannel,Message receiveMessage) {
+    private void processConnected(Channel serverChannel, Message receiveMessage) {
         try {
             TcpClient localConnection = new TcpClient();
             Channel channel = localConnection.connect(proxyAddress, proxyPort, new ChannelInitializer<SocketChannel>() {
@@ -133,9 +135,10 @@ public class ClientHandler extends CommonHandler {
                     LocalProxyHandler localProxyHandler = new LocalProxyHandler(serverChannel,
                             receiveMessage.getHeader().getChannelId());
                     ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(), localProxyHandler);
-                    channelHandlerMap.put(receiveMessage.getHeader().getChannelId(), localProxyHandler);
                 }
             });
+            channelMap.put(serverChannel, channel);
+            channelHandlerMap.put(receiveMessage.getHeader().getChannelId(), channel);
             channelGroup.add(channel);
         } catch (Exception e) {
             logger.throwing(getClass().getName(), "连接内网服务失败...........", e);
@@ -151,12 +154,11 @@ public class ClientHandler extends CommonHandler {
     /**
      * if message.getType() == MessageType.DISCONNECTED
      */
-    private void processDisconnected(Message message) {
-        String channelId = message.getHeader().getChannelId();
-        CommonHandler handler = channelHandlerMap.get(channelId);
-        if (handler != null) {
-            handler.getCtx().close().awaitUninterruptibly();
-            channelHandlerMap.remove(channelId);
+    private void processDisconnected(Channel channel, Message message) {
+        Channel localProxyChannel = channelMap.get(channel);
+        if (Objects.nonNull(localProxyChannel)) {
+            logger.warning("收到服务端发来关闭本地代理客户端的消息！");
+            localProxyChannel.close();
         }
     }
 
@@ -165,15 +167,8 @@ public class ClientHandler extends CommonHandler {
      */
     private void processData(Message message) {
         String channelId = message.getHeader().getChannelId();
-        CommonHandler handler = channelHandlerMap.get(channelId);
-        if (handler != null) {
-            try {
-                ChannelHandlerContext ctx = handler.getCtx();
-                ctx.writeAndFlush(message.getData());
-            } catch (Exception e) {
-                logger.throwing(getClass().getName(), "ctx=" + ctx, e);
-            }
-        }
+        Channel localProxyChannel = channelHandlerMap.get(channelId);
+        localProxyChannel.writeAndFlush(message.getData());
     }
 
     /**

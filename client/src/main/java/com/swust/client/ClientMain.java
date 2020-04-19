@@ -7,6 +7,7 @@ import com.swust.common.codec.MessageEncoder;
 import com.swust.common.config.LogFormatter;
 import com.swust.common.constant.Constant;
 import com.swust.common.exception.ClientException;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -85,9 +86,9 @@ public class ClientMain {
     private static String password;
     private static String remotePort;
 
-    public static void start() throws ClientException {
+    public static Channel start() throws ClientException {
         TcpClient tcpClient = new TcpClient();
-        tcpClient.connect(serverAddress, Integer.parseInt(serverPort), new ChannelInitializer<SocketChannel>() {
+        return tcpClient.connect(serverAddress, Integer.parseInt(serverPort), new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
                 ClientHandler clientHandler = new ClientHandler(Integer.parseInt(remotePort), password,

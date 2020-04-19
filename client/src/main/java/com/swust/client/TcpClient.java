@@ -33,7 +33,7 @@ public class TcpClient {
             return channel;
         } catch (Exception e) {
             workerGroup.shutdownGracefully();
-            throw new ClientException(e);
+            return null;
         }
     }
 }

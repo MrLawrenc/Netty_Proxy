@@ -6,6 +6,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import lombok.Getter;
 
 import java.util.logging.Logger;
 
@@ -13,7 +14,7 @@ import java.util.logging.Logger;
  * @author : LiuMing
  * @date : 2019/11/4 10:37
  * @description :   Tcp服务端
- */
+ */@Getter
 public class TcpServer {
     protected Logger logger = Logger.getGlobal();
     private Channel channel;
