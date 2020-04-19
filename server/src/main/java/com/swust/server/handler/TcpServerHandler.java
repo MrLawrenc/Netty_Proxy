@@ -61,7 +61,7 @@ public class TcpServerHandler extends CommonHandler {
         MessageType type = message.getHeader().getType();
         //客户端注册
         if (type == MessageType.REGISTER) {
-            processRegister(ctx, message);
+            processRegister(ctx.channel(), message);
         } else {
             if (type == MessageType.DISCONNECTED) {
                 processDisconnected(message);
@@ -84,14 +84,14 @@ public class TcpServerHandler extends CommonHandler {
     /**
      * 维持客户端与当前暴露出去的代理服务端联系
      */
-    private static Map<SocketChannel, ChannelHandlerContext> ctxMap = new HashMap<>();
+    private static Map<Channel, Channel> ctxMap = new HashMap<>();
 
     /**
      * 处理客户端注册,每个客户端注册成功都会启动一个服务，绑定客户端指定的端口
      *
-     * @param ctx 与当前服务端保持连接的ctx
+     * @param channelClient 与当前服务端保持连接的内网channel
      */
-    private void processRegister(ChannelHandlerContext ctx, Message message) {
+    private void processRegister(Channel channelClient, Message message) {
         String password = message.getHeader().getPassword();
 
         if (this.password == null || !this.password.equals(password)) {
@@ -101,20 +101,19 @@ public class TcpServerHandler extends CommonHandler {
             int port = message.getHeader().getOpenTcpPort();
             try {
                 TcpServerHandler thisHandler = this;
-                boolean b = remoteConnectionServer.initTcpServer(port, new ChannelInitializer<SocketChannel>() {
+                Channel proxyChannel = remoteConnectionServer.initTcpServer(port, new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) {
                         ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(),
                                 new RemoteProxyHandler(thisHandler));
                         channels.add(ch);
-                        ctxMap.put(ch, ctx);
                     }
                 });
-                if (!b) {
-                    logger.info(" start server on port: " + port + "  fail!");
+                if (Objects.isNull(proxyChannel)) {
+                    logger.info(" start proxy server on port: " + port + "  fail!");
                     return;
                 }
-
+                ctxMap.put(channelClient, proxyChannel);
                 message.getHeader().setSuccess(true);
                 this.port = port;
                 logger.info("Register success, start server on port: " + port);

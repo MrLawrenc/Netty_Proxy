@@ -142,7 +142,7 @@ public class ClientHandler extends CommonHandler {
                     channelHandlerMap.put(receiveMessage.getHeader().getChannelId(), localProxyHandler);
                 }
             });
-            CHANNEL_HASH_MAP.put(clientChannel, channel);
+
             System.out.println("ch:" + channel);
             channelGroup.add(channel);
         } catch (Exception e) {

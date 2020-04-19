@@ -92,9 +92,6 @@ public class ClientMain {
             public void initChannel(SocketChannel ch) {
                 ClientHandler clientHandler = new ClientHandler(Integer.parseInt(remotePort), password,
                         proxyAddress, Integer.parseInt(proxyPort));
-//                    ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4),
-//                            new MessageDecoder(), new MessageEncoder(),
-//                            new IdleStateHandler(60, 30, 0), clientHandler);
                 ch.pipeline().addLast(
                         new MessageDecoder(), new MessageEncoder(),
                         new IdleStateHandler(60, 20, 0), clientHandler);

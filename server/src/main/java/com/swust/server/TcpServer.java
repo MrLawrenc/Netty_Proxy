@@ -16,12 +16,9 @@ import java.util.logging.Logger;
  */
 public class TcpServer {
     protected Logger logger = Logger.getGlobal();
-    private Channel tcpChannel;
+    private Channel channel;
 
-    /**
-     * tcp服务端初始化
-     */
-    public boolean initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
+    public Channel initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
 
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -34,27 +31,25 @@ public class TcpServer {
                     .childHandler(channelInitializer)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
             ChannelFuture channelFuture = b.bind(port).sync();
-            tcpChannel = channelFuture.channel();
-            tcpChannel.closeFuture().addListener((ChannelFutureListener) future -> {
+            channel = channelFuture.channel();
+            channel.closeFuture().addListener((ChannelFutureListener) future -> {
                 workerGroup.shutdownGracefully();
                 bossGroup.shutdownGracefully();
             });
+            return channel;
         } catch (Exception e) {
             logger.warning("start fail! will close group!");
             e.printStackTrace();
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
-            return false;
         }
-        return true;
+        return null;
+
     }
 
-    /**
-     * 关闭tcp服务端
-     */
-    public void close() {
-        if (tcpChannel != null) {
-            tcpChannel.close();
+    public void close() throws InterruptedException {
+        if (channel != null) {
+            channel.close().sync();
         }
     }
 }
