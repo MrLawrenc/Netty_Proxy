@@ -139,7 +139,7 @@ public class TcpServerHandler extends CommonHandler {
     /**
      * 断开,先关闭外网暴露的代理，在关闭连接的客户端
      */
-    private void processDisconnected(Message message) {
+    private void processDisconnected(Message message) throws InterruptedException {
         AtomicReference<Channel> target = new AtomicReference<>();
         channels.close(channel -> {
             if (channel.id().asLongText().equals(message.getHeader().getChannelId())) {
@@ -151,6 +151,7 @@ public class TcpServerHandler extends CommonHandler {
         }).awaitUninterruptibly();
         if (Objects.nonNull(target.get())) {
             logger.info("step2: find target channel,will close proxy client! ");
+            target.get().close().sync();
         }
     }
 

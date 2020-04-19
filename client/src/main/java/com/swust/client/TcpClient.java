@@ -19,7 +19,7 @@ import io.netty.handler.logging.LoggingHandler;
 public class TcpClient {
 
     public Channel connect(String host, int port, ChannelInitializer<?> channelInitializer) throws ClientException {
-        NioEventLoopGroup workerGroup = new NioEventLoopGroup();
+        NioEventLoopGroup workerGroup = new NioEventLoopGroup(2);
         try {
             Bootstrap b = new Bootstrap();
             b.group(workerGroup)
