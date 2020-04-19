@@ -23,7 +23,7 @@ public class TcpClient {
             Bootstrap b = new Bootstrap();
             b.group(workerGroup)
                     .channel(NioSocketChannel.class)
-                    .handler(new LoggingHandler(LogLevel.DEBUG))
+                    .handler(new LoggingHandler(LogLevel.WARN))
                     .option(ChannelOption.SO_KEEPALIVE, true)
                     .handler(channelInitializer);
 

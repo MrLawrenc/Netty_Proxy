@@ -27,7 +27,7 @@ public class ExtranetServer {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
-                    .handler(new LoggingHandler(LogLevel.DEBUG))
+                    .handler(new LoggingHandler(LogLevel.WARN))
                     .childHandler(channelInitializer)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
             ChannelFuture channelFuture = b.bind(port).sync();
@@ -35,6 +35,7 @@ public class ExtranetServer {
             return this;
         } catch (Exception e) {
             LogUtil.warnLog("start fail! will close group!");
+            e.printStackTrace();
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
         }

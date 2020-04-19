@@ -4,6 +4,7 @@ import com.swust.common.cmd.CmdOptions;
 import com.swust.common.codec.MessageDecoder;
 import com.swust.common.codec.MessageEncoder;
 import com.swust.common.config.LogFormatter;
+import com.swust.common.config.LogUtil;
 import com.swust.common.constant.Constant;
 import com.swust.server.handler.TcpServerHandler;
 import io.netty.channel.ChannelInitializer;
@@ -86,5 +87,6 @@ public class ServerMain {
                         tcpServerHandler);
             }
         });
+        LogUtil.infoLog("服务端启动成功 port:{} pwd:{}", port, password);
     }
 }

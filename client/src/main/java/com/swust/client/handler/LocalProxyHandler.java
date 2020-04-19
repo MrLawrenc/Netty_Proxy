@@ -8,8 +8,6 @@ import com.swust.common.protocol.MessageType;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 
-import java.util.logging.Logger;
-
 /**
  * @author : LiuMing
  * @date : 2019/11/4 14:05
@@ -17,7 +15,6 @@ import java.util.logging.Logger;
  */
 public class LocalProxyHandler extends CommonHandler {
 
-    private Logger logger = Logger.getGlobal();
     /**
      * 本机的netty客户端，该客户端和公网的netty服务端有一个长链接，使用该channel发送消息到公网netty服务端，
      * 之后服务端再将结果响应给外部的请求

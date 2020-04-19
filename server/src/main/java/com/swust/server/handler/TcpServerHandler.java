@@ -10,14 +10,11 @@ import com.swust.server.ExtranetServer;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
-import io.netty.util.concurrent.GlobalEventExecutor;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +29,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TcpServerHandler extends CommonHandler {
     private String password;
 
-    private static ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
     /**
      * key channel id  value 对应得外网代理服务端
@@ -67,9 +63,9 @@ public class TcpServerHandler extends CommonHandler {
             processRegister(ctx, message);
         } else {
             if (type == MessageType.DISCONNECTED) {
-                processDisconnected(ctx, message);
+                processDisconnected(ctx.channel());
             } else if (type == MessageType.DATA) {
-                processData(message);
+                processData(ctx.channel(), message);
             } else if (type == MessageType.KEEPALIVE) {
                 // 心跳包
                 DEFAULT_COUNT.put(ctx, 0);
@@ -113,12 +109,11 @@ public class TcpServerHandler extends CommonHandler {
                     return;
                 }
                 channelMap.put(channelClient.channel(), extranetServer);
-                idChannelMap.put(message.getHeader().getChannelId(), extranetServer);
                 message.getHeader().setSuccess(true);
                 LogUtil.infoLog("Register success, start server on port: " + port);
             } catch (java.lang.Exception e) {
                 e.printStackTrace();
-                LogUtil.errorLog("Register fail,  port: " + port);
+                LogUtil.errorLog("Register fail, msg:{} port: ", message, port);
                 return;
             }
         }
@@ -129,8 +124,8 @@ public class TcpServerHandler extends CommonHandler {
     /**
      * 处理收到转发的内网响应数据包
      */
-    private void processData(Message message) {
-        ExtranetServer extranetServer = idChannelMap.get(message.getHeader().getChannelId());
+    private void processData(Channel channel, Message message) {
+        ExtranetServer extranetServer = channelMap.get(channel);
         if (Objects.isNull(extranetServer)) {
             LogUtil.errorLog("收到内网代理客户端的消息，但是未找到相应的外网代理服务单端返回！msg:{}", message.getHeader().toString());
         } else {
@@ -142,8 +137,8 @@ public class TcpServerHandler extends CommonHandler {
     /**
      * 断开,先关闭外网暴露的代理，在关闭连接的客户端
      */
-    private void processDisconnected(ChannelHandlerContext channelClient, Message message) throws InterruptedException {
-        ExtranetServer extranetServer = idChannelMap.get(message.getHeader().getChannelId());
+    private void processDisconnected(Channel channel) throws InterruptedException {
+        ExtranetServer extranetServer = channelMap.get(channel);
         if (Objects.nonNull(extranetServer)) {
             LogUtil.warnLog("收到内网代理客户端的关闭请求! 即将关闭相应的外网代理服务端！");
             extranetServer.close();
