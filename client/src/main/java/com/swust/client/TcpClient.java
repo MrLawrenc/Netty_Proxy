@@ -18,7 +18,7 @@ import io.netty.handler.logging.LoggingHandler;
  */
 public class TcpClient {
 
-    public void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws ClientException {
+    public Channel connect(String host, int port, ChannelInitializer<?> channelInitializer) throws ClientException {
         NioEventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
             Bootstrap b = new Bootstrap();
@@ -30,6 +30,7 @@ public class TcpClient {
 
             Channel channel = b.connect(host, port).sync().channel();
             channel.closeFuture().addListener((ChannelFutureListener) future -> workerGroup.shutdownGracefully());
+            return channel;
         } catch (Exception e) {
             workerGroup.shutdownGracefully();
             throw new ClientException(e);
