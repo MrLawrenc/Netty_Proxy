@@ -91,11 +91,7 @@ public class ServerMain {
                 ch.pipeline().addLast(new MessageDecoder(), new MessageEncoder(),
                         new IdleStateHandler(60, 20, 0, TimeUnit.SECONDS),
                         tcpServerHandler);
-//                    ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4),
-//                            new MessageDecoder(), new MessageEncoder(),
-//                            new IdleStateHandler(60, 30, 0),
-//                            tcpServerHandler);
             }
-        });
+        }).getChannel();
     }
 }
