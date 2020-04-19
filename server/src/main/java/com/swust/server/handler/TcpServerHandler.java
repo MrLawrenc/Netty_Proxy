@@ -1,12 +1,12 @@
 package com.swust.server.handler;
 
 import com.alibaba.fastjson.JSON;
+import com.swust.common.config.LogUtil;
 import com.swust.common.exception.ServerException;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
-import com.swust.common.protocol.MessageHeader;
 import com.swust.common.protocol.MessageType;
-import com.swust.server.TcpServer;
+import com.swust.server.ExtranetServer;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
@@ -22,6 +22,7 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author : LiuMing
@@ -30,16 +31,19 @@ import java.util.Objects;
  */
 public class TcpServerHandler extends CommonHandler {
     private String password;
-    private int port;
 
     private static ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
     /**
-     * 注册信息保存
+     * key channel id  value 对应得外网代理服务端
      */
-    protected static final Map<ChannelHandlerContext, Boolean> REGISTER_STATE = new HashMap<>();
+    private static ConcurrentHashMap<String, ExtranetServer> idChannelMap = new ConcurrentHashMap<>();
 
 
+    /**
+     * key 客户端channel   value 对应得外网代理服务端
+     */
+    private static ConcurrentHashMap<Channel, ExtranetServer> channelMap = new ConcurrentHashMap<>();
     /**
      * 默认读超时上限
      */
@@ -77,16 +81,11 @@ public class TcpServerHandler extends CommonHandler {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.warning("服务端触发channelInactive local：" + ctx.channel().localAddress() + "  remote:" + ctx.channel().remoteAddress());
-        logger.warning("will close server proxy!");
-        ctxMap.get(ctx.channel()).getChannel().close();
-        ctxMap.remove(ctx.channel());
+        LogUtil.errorLog("服务端触发channelInactive,即将关闭对应的外网代理服务端 local:{}   remote:{}", ctx.channel().localAddress(), ctx.channel().remoteAddress());
+        channelMap.get(ctx.channel()).close();
+        channelMap.remove(ctx.channel());
     }
 
-    /**
-     * 维持客户端与当前暴露出去的代理服务端联系
-     */
-    private static Map<Channel, TcpServer> ctxMap = new HashMap<>();
 
     /**
      * 处理客户端注册,每个客户端注册成功都会启动一个服务，绑定客户端指定的端口
@@ -102,25 +101,24 @@ public class TcpServerHandler extends CommonHandler {
             //客户端指定对外开放的端口
             int port = message.getHeader().getOpenTcpPort();
             try {
-                TcpServer proxyHandler = new TcpServer().initTcpServer(port, new ChannelInitializer<SocketChannel>() {
+                ExtranetServer extranetServer = new ExtranetServer().initTcpServer(port, new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) {
                         ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(),
                                 new RemoteProxyHandler(channelClient.channel()));
-                        channels.add(ch);
                     }
                 });
-                if (Objects.isNull(proxyHandler)) {
-                    logger.info(" start proxy server on port: " + port + "  fail!");
+                if (Objects.isNull(extranetServer)) {
+                    LogUtil.errorLog(" start proxy server on port: " + port + "  fail!");
                     return;
                 }
-                ctxMap.put(channelClient.channel(), proxyHandler);
+                channelMap.put(channelClient.channel(), extranetServer);
+                idChannelMap.put(message.getHeader().getChannelId(), extranetServer);
                 message.getHeader().setSuccess(true);
-                this.port = port;
-                logger.info("Register success, start server on port: " + port);
+                LogUtil.infoLog("Register success, start server on port: " + port);
             } catch (java.lang.Exception e) {
-                logger.info("Register fail,  port: " + port);
-                channelClient.close();
+                e.printStackTrace();
+                LogUtil.errorLog("Register fail,  port: " + port);
                 return;
             }
         }
@@ -132,26 +130,24 @@ public class TcpServerHandler extends CommonHandler {
      * 处理收到转发的内网响应数据包
      */
     private void processData(Message message) {
-        channels.writeAndFlush(message.getData(), channel ->
-                channel.id().asLongText().equals(message.getHeader().getChannelId()));
+        ExtranetServer extranetServer = idChannelMap.get(message.getHeader().getChannelId());
+        if (Objects.isNull(extranetServer)) {
+            LogUtil.errorLog("收到内网代理客户端的消息，但是未找到相应的外网代理服务单端返回！msg:{}", message.getHeader().toString());
+        } else {
+            extranetServer.getChannel().write(message.getData());
+        }
+
     }
 
     /**
      * 断开,先关闭外网暴露的代理，在关闭连接的客户端
      */
     private void processDisconnected(ChannelHandlerContext channelClient, Message message) throws InterruptedException {
-        Channel channel = channelClient.channel();
-        TcpServer proxyServer = ctxMap.get(channel);
-        if (Objects.nonNull(proxyServer)) {
-            logger.warning("收到代理客户端的关闭请求! local:" + channel.localAddress() + "  remote:" + channel.remoteAddress());
-            proxyServer.getChannel().close();
+        ExtranetServer extranetServer = idChannelMap.get(message.getHeader().getChannelId());
+        if (Objects.nonNull(extranetServer)) {
+            LogUtil.warnLog("收到内网代理客户端的关闭请求! 即将关闭相应的外网代理服务端！");
+            extranetServer.close();
         }
-
-        Message newMessage = new Message();
-        MessageHeader header = newMessage.getHeader();
-        header.setType(MessageType.DISCONNECTED);
-        header.setChannelId(message.getHeader().getChannelId());
-        channelClient.writeAndFlush(newMessage);
     }
 
 
@@ -167,7 +163,7 @@ public class TcpServerHandler extends CommonHandler {
                 DEFAULT_COUNT.put(ctx, count++);
                 if (count > DEFAULT_RECONNECTION_LIMIT) {
                     DEFAULT_COUNT.remove(ctx);
-                    logger.severe("Read idle  will loss connection. retryNum:" + count);
+                    LogUtil.errorLog("Read idle  will loss connection. retryNum:{}", count);
                     ctx.close();
                 }
             }

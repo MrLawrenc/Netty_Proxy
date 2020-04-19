@@ -1,6 +1,5 @@
 package com.swust.client;
 
-import com.swust.common.exception.ClientException;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -18,7 +17,7 @@ import io.netty.handler.logging.LoggingHandler;
  */
 public class TcpClient {
 
-    public Channel connect(String host, int port, ChannelInitializer<?> channelInitializer) throws ClientException {
+    public void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws Exception {
         NioEventLoopGroup workerGroup = new NioEventLoopGroup(2);
         try {
             Bootstrap b = new Bootstrap();
@@ -30,10 +29,9 @@ public class TcpClient {
 
             Channel channel = b.connect(host, port).sync().channel();
             channel.closeFuture().addListener((ChannelFutureListener) future -> workerGroup.shutdownGracefully());
-            return channel;
         } catch (Exception e) {
             workerGroup.shutdownGracefully();
-            return null;
+            throw new RuntimeException("开启客户端失败!");
         }
     }
 }

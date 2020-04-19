@@ -1,5 +1,6 @@
 package com.swust.client.handler;
 
+import com.swust.common.config.LogUtil;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageHeader;
@@ -42,7 +43,7 @@ public class LocalProxyHandler extends CommonHandler {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        logger.warning(String.format("will close local service %s", ctx.channel().localAddress()));
+        LogUtil.errorLog("内网代理客户端断开连接，即将通知服务端！");
         Message message = new Message();
         MessageHeader header = message.getHeader();
         header.setType(MessageType.DISCONNECTED);

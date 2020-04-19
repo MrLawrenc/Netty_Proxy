@@ -6,13 +6,11 @@ import com.swust.common.codec.MessageEncoder;
 import com.swust.common.config.LogFormatter;
 import com.swust.common.constant.Constant;
 import com.swust.server.handler.TcpServerHandler;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.commons.cli.*;
 
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -71,19 +69,14 @@ public class ServerMain {
             int port = Integer.parseInt(cmd.getOptionValue(CmdOptions.PORT.getLongOpt(), Constant.DEFAULT_PORT));
             String password = cmd.getOptionValue(CmdOptions.PASSWORD.getLongOpt(), Constant.DEFAULT_PASSWORD);
 
-            Channel channel = start(port, password);
-            if (Objects.nonNull(channel)) {
-                logger.info("Tcp server started on port " + port + " Password is " + password);
-            } else {
-                logger.warning("Tcp server boot failed " + port);
-            }
+            start(port, password);
         }
     }
 
 
-    private static Channel start(int port, String password) {
+    private static void start(int port, String password) throws Exception {
         TcpServer tcpServer = new TcpServer();
-        return tcpServer.initTcpServer(port, new ChannelInitializer<SocketChannel>() {
+        tcpServer.initTcpServer(port, new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
                 TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
@@ -92,6 +85,6 @@ public class ServerMain {
                         new IdleStateHandler(60, 20, 0, TimeUnit.SECONDS),
                         tcpServerHandler);
             }
-        }).getChannel();
+        });
     }
 }

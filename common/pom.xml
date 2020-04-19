@@ -11,6 +11,12 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>common</artifactId>
-
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.29</version>
+        </dependency>
+    </dependencies>
 
 </project>

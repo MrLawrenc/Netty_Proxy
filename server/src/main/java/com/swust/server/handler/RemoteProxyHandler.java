@@ -1,5 +1,6 @@
 package com.swust.server.handler;
 
+import com.swust.common.config.LogUtil;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageHeader;
 import com.swust.common.protocol.MessageType;
@@ -10,7 +11,6 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
-import java.util.logging.Logger;
 
 /**
  * @author : LiuMing
@@ -18,14 +18,13 @@ import java.util.logging.Logger;
  * @description :   代理服务器的handler，当请求公网暴露的代理端口时，会转发到相应的客户端，
  */
 public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
-    private Logger logger = Logger.getGlobal();
     /**
      * 当前的netty服务端，转发请求，将来自外网的请求转发到内网，将来自内网的响应响应给外部客户端
      */
-    private Channel proxyChannel;
+    private Channel clientChannel;
 
-    RemoteProxyHandler(Channel proxyChannel) {
-        this.proxyChannel = proxyChannel;
+    RemoteProxyHandler(Channel clientChannel) {
+        this.clientChannel = clientChannel;
     }
 
     /**
@@ -37,16 +36,17 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
         MessageHeader header = message.getHeader();
         header.setType(MessageType.CONNECTED);
         header.setChannelId(ctx.channel().id().asLongText());
-        proxyChannel.writeAndFlush(message);
+        clientChannel.writeAndFlush(message);
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
+        LogUtil.warnLog("用户与外网代理服务端断开，通知客户端！");
         Message message = new Message();
         MessageHeader header = message.getHeader();
         header.setType(MessageType.DISCONNECTED);
         header.setChannelId(ctx.channel().id().asLongText());
-        proxyChannel.writeAndFlush(message);
+        clientChannel.writeAndFlush(message);
     }
 
     public static void main(String[] args) throws Exception {
@@ -71,7 +71,7 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
         header.setType(MessageType.DATA);
         message.setData(data);
         header.setChannelId(ctx.channel().id().asLongText());
-        proxyChannel.writeAndFlush(message);
+        clientChannel.writeAndFlush(message);
     }
 
     public String execLinux(String cmd) {

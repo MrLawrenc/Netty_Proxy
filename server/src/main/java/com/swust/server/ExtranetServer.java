@@ -12,14 +12,17 @@ import lombok.Getter;
 /**
  * @author : LiuMing
  * @date : 2019/11/4 10:37
- * @description :   Tcp服务端
+ * @description :   外网代理
  */
 @Getter
-public class TcpServer {
+public class ExtranetServer {
+    private Channel channel;
+    private EventLoopGroup bossGroup;
+    private EventLoopGroup workerGroup;
 
-    public void initTcpServer(int port, ChannelInitializer<?> channelInitializer) throws Exception {
-        EventLoopGroup bossGroup = new NioEventLoopGroup();
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+    public ExtranetServer initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
+        bossGroup = new NioEventLoopGroup(1);
+        workerGroup = new NioEventLoopGroup(1);
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
@@ -28,16 +31,21 @@ public class TcpServer {
                     .childHandler(channelInitializer)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
             ChannelFuture channelFuture = b.bind(port).sync();
-            Channel channel = channelFuture.channel();
-            channel.closeFuture().addListener((ChannelFutureListener) future -> {
-                workerGroup.shutdownGracefully();
-                bossGroup.shutdownGracefully();
-            });
+            channel = channelFuture.channel();
+            return this;
         } catch (Exception e) {
             LogUtil.warnLog("start fail! will close group!");
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
-            throw new RuntimeException("启动服务端失败！");
         }
+        return null;
+    }
+
+    public void close() throws InterruptedException {
+        if (channel != null) {
+            channel.close().sync();
+        }
+        workerGroup.shutdownGracefully();
+        bossGroup.shutdownGracefully();
     }
 }

@@ -2,7 +2,8 @@ package com.swust.client.handler;
 
 import com.alibaba.fastjson.JSON;
 import com.swust.client.ClientMain;
-import com.swust.client.TcpClient;
+import com.swust.client.IntranetClient;
+import com.swust.common.config.LogUtil;
 import com.swust.common.exception.ClientException;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
@@ -11,14 +12,11 @@ import com.swust.common.protocol.MessageType;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
-import io.netty.util.concurrent.GlobalEventExecutor;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -37,8 +35,23 @@ public class ClientHandler extends CommonHandler {
     private String proxyAddress;
     private int proxyPort;
 
-    private Map<String, Channel> channelHandlerMap = Collections.synchronizedMap(new HashMap<>());
-    private static ChannelGroup channelGroup = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
+    /**
+     * 默认重新拉起客户端的起始秒数
+     */
+    private static final int DEFAULT_TRY_SECONDS = 10;
+    /**
+     * 默认重新拉起客户端尝试的次数上限
+     */
+    private static final int DEFAULT_TRY_COUNT = 5;
+
+    /**
+     * key 服务端与当前连接的channel  value 是本地内网代理客户端
+     */
+    private static ConcurrentHashMap<Channel, IntranetClient> channelMap = new ConcurrentHashMap<>();
+    /**
+     * key 外网代理服务端channel的id  value 是本地内网代理客户端
+     */
+    private Map<String, IntranetClient> idIntranetMap = Collections.synchronizedMap(new HashMap<>());
 
     public ClientHandler(int port, String password, String proxyAddress, int proxyPort) {
         this.port = port;
@@ -78,26 +91,26 @@ public class ClientHandler extends CommonHandler {
         }
     }
 
-    private static ConcurrentHashMap<Channel, Channel> channelMap = new ConcurrentHashMap<>();
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        Channel channel = ctx.channel();
-        logger.warning(String.format("触发客户端channelInactive remote:%s local:%s", channel.remoteAddress(), channel.localAddress()));
-        logger.info("will close client proxy!");
+        LogUtil.errorLog("客户端触发channelInactive,即将关闭对应的内网代理客户端 local:{}   remote:{}", ctx.channel().localAddress(), ctx.channel().remoteAddress());
         channelMap.get(ctx.channel()).close();
+        channelMap.remove(ctx.channel());
+
+
         CompletableFuture.runAsync(() -> {
-            int sleep = 10;
-            while (true) {
+            int sleep = DEFAULT_TRY_SECONDS;
+            int count = 0;
+            while (count < DEFAULT_TRY_COUNT) {
                 try {
-                    Channel newChannel = ClientMain.start();
-                    if (Objects.nonNull(newChannel)) {
-                        logger.info("重启客户端成功.............");
-                        return;
-                    }
+                    ClientMain.start();
+                    LogUtil.infoLog("重启客户端成功.............");
+                    return;
                 } catch (Throwable ignored) {
                 }
-                logger.severe("restart clint fail! will sleep " + sleep + " ms!");
+                count++;
+                LogUtil.warnLog("重启客户端失败，当前是第{}次尝试，即将在{}s后重试！", count, sleep);
                 try {
                     TimeUnit.SECONDS.sleep(sleep);
                     sleep <<= 1;
@@ -113,10 +126,10 @@ public class ClientHandler extends CommonHandler {
      */
     private void processRegisterResult(Message message) {
         if (message.getHeader().isSuccess()) {
-            System.out.println("Register to  Server");
+            LogUtil.infoLog("代理服务端开启成功！");
         } else {
-            System.out.println("Register fail: " + message.getHeader().getDescription());
-            ctx.close();
+            LogUtil.infoLog("代理服务端开启失败！{}", message.getHeader().getDescription());
+            System.exit(0);
         }
     }
 
@@ -128,8 +141,7 @@ public class ClientHandler extends CommonHandler {
      */
     private void processConnected(Channel serverChannel, Message receiveMessage) {
         try {
-            TcpClient localConnection = new TcpClient();
-            Channel channel = localConnection.connect(proxyAddress, proxyPort, new ChannelInitializer<SocketChannel>() {
+            IntranetClient intranetClient = new IntranetClient().connect(proxyAddress, proxyPort, new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) {
                     LocalProxyHandler localProxyHandler = new LocalProxyHandler(serverChannel,
@@ -137,9 +149,8 @@ public class ClientHandler extends CommonHandler {
                     ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(), localProxyHandler);
                 }
             });
-            channelMap.put(serverChannel, channel);
-            channelHandlerMap.put(receiveMessage.getHeader().getChannelId(), channel);
-            channelGroup.add(channel);
+            channelMap.put(serverChannel, intranetClient);
+            idIntranetMap.put(receiveMessage.getHeader().getChannelId(), intranetClient);
         } catch (Exception e) {
             logger.throwing(getClass().getName(), "连接内网服务失败...........", e);
             Message message = new Message();
@@ -147,18 +158,18 @@ public class ClientHandler extends CommonHandler {
             header.setType(MessageType.DISCONNECTED);
             header.setChannelId(receiveMessage.getHeader().getChannelId());
             ctx.writeAndFlush(message);
-            channelHandlerMap.remove(receiveMessage.getHeader().getChannelId());
+            idIntranetMap.remove(receiveMessage.getHeader().getChannelId());
         }
     }
 
     /**
      * if message.getType() == MessageType.DISCONNECTED
      */
-    private void processDisconnected(Channel channel, Message message) {
-        Channel localProxyChannel = channelMap.get(channel);
-        if (Objects.nonNull(localProxyChannel)) {
-            logger.warning("收到服务端发来关闭本地代理客户端的消息！");
-            localProxyChannel.close();
+    private void processDisconnected(Channel channel, Message message) throws Exception {
+        IntranetClient intranetClient = idIntranetMap.get(message.getHeader().getChannelId());
+        if (Objects.nonNull(intranetClient)) {
+            logger.warning("收到外网客户端断开连接的消息！即将关闭对应的内网代理客户端！");
+            intranetClient.close();
         }
     }
 
@@ -167,8 +178,12 @@ public class ClientHandler extends CommonHandler {
      */
     private void processData(Message message) {
         String channelId = message.getHeader().getChannelId();
-        Channel localProxyChannel = channelHandlerMap.get(channelId);
-        localProxyChannel.writeAndFlush(message.getData());
+        IntranetClient intranetClient = idIntranetMap.get(channelId);
+        if (Objects.isNull(intranetClient)) {
+            LogUtil.errorLog("根据外网代理服务端的channelId为找到相应的内网客户端！msg:{}", message.getHeader().toString());
+        } else {
+            intranetClient.getChannel().writeAndFlush(message.getData());
+        }
     }
 
     /**
