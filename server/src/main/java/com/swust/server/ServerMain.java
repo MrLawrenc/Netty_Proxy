@@ -6,11 +6,13 @@ import com.swust.common.codec.MessageEncoder;
 import com.swust.common.config.LogFormatter;
 import com.swust.common.constant.Constant;
 import com.swust.server.handler.TcpServerHandler;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.commons.cli.*;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -69,8 +71,8 @@ public class ServerMain {
             int port = Integer.parseInt(cmd.getOptionValue(CmdOptions.PORT.getLongOpt(), Constant.DEFAULT_PORT));
             String password = cmd.getOptionValue(CmdOptions.PASSWORD.getLongOpt(), Constant.DEFAULT_PASSWORD);
 
-            boolean success = start(port, password);
-            if (success) {
+            Channel channel = start(port, password);
+            if (Objects.nonNull(channel)) {
                 logger.info("Tcp server started on port " + port + " Password is " + password);
             } else {
                 logger.warning("Tcp server boot failed " + port);
@@ -79,7 +81,7 @@ public class ServerMain {
     }
 
 
-    private static boolean start(int port, String password) {
+    private static Channel start(int port, String password) {
         TcpServer tcpServer = new TcpServer();
         return tcpServer.initTcpServer(port, new ChannelInitializer<SocketChannel>() {
             @Override

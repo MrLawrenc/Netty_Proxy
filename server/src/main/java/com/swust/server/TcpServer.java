@@ -18,7 +18,7 @@ public class TcpServer {
     protected Logger logger = Logger.getGlobal();
     private Channel channel;
 
-    public Channel initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
+    public TcpServer initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
 
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
@@ -36,7 +36,7 @@ public class TcpServer {
                 workerGroup.shutdownGracefully();
                 bossGroup.shutdownGracefully();
             });
-            return channel;
+            return this;
         } catch (Exception e) {
             logger.warning("start fail! will close group!");
             e.printStackTrace();

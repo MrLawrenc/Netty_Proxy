@@ -1,9 +1,9 @@
 package com.swust.server.handler;
 
-import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageHeader;
 import com.swust.common.protocol.MessageType;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
@@ -22,10 +22,10 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
     /**
      * 当前的netty服务端，转发请求，将来自外网的请求转发到内网，将来自内网的响应响应给外部客户端
      */
-    private CommonHandler proxyHandler;
+    private Channel proxyChannel;
 
-    RemoteProxyHandler(CommonHandler proxyHandler) {
-        this.proxyHandler = proxyHandler;
+    RemoteProxyHandler(Channel proxyChannel) {
+        this.proxyChannel = proxyChannel;
     }
 
     /**
@@ -37,7 +37,7 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
         MessageHeader header = message.getHeader();
         header.setType(MessageType.CONNECTED);
         header.setChannelId(ctx.channel().id().asLongText());
-        proxyHandler.getCtx().writeAndFlush(message);
+        proxyChannel.writeAndFlush(message);
     }
 
     @Override
@@ -46,7 +46,7 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
         MessageHeader header = message.getHeader();
         header.setType(MessageType.DISCONNECTED);
         header.setChannelId(ctx.channel().id().asLongText());
-        proxyHandler.getCtx().writeAndFlush(message);
+        proxyChannel.writeAndFlush(message);
     }
 
     public static void main(String[] args) throws Exception {
@@ -71,7 +71,7 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
         header.setType(MessageType.DATA);
         message.setData(data);
         header.setChannelId(ctx.channel().id().asLongText());
-        proxyHandler.getCtx().writeAndFlush(message);
+        proxyChannel.writeAndFlush(message);
     }
 
     public String execLinux(String cmd) {

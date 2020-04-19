@@ -31,7 +31,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class TcpServerHandler extends CommonHandler {
     private String password;
     private int port;
-    private TcpServer remoteConnectionServer = new TcpServer();
 
     private static ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
@@ -61,7 +60,7 @@ public class TcpServerHandler extends CommonHandler {
         MessageType type = message.getHeader().getType();
         //客户端注册
         if (type == MessageType.REGISTER) {
-            processRegister(ctx.channel(), message);
+            processRegister(ctx, message);
         } else {
             if (type == MessageType.DISCONNECTED) {
                 processDisconnected(message);
@@ -78,20 +77,20 @@ public class TcpServerHandler extends CommonHandler {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        logger.warning("close proxy  client channel port：" + ctx.channel().remoteAddress());
+        logger.warning("服务端触发channelInactive local：" + ctx.channel().localAddress() + "  remote:" + ctx.channel().remoteAddress());
     }
 
     /**
      * 维持客户端与当前暴露出去的代理服务端联系
      */
-    private static Map<Channel, Channel> ctxMap = new HashMap<>();
+    private static Map<Channel, TcpServer> ctxMap = new HashMap<>();
 
     /**
      * 处理客户端注册,每个客户端注册成功都会启动一个服务，绑定客户端指定的端口
      *
      * @param channelClient 与当前服务端保持连接的内网channel
      */
-    private void processRegister(Channel channelClient, Message message) {
+    private void processRegister(ChannelHandlerContext channelClient, Message message) {
         String password = message.getHeader().getPassword();
 
         if (this.password == null || !this.password.equals(password)) {
@@ -100,26 +99,25 @@ public class TcpServerHandler extends CommonHandler {
             //客户端指定对外开放的端口
             int port = message.getHeader().getOpenTcpPort();
             try {
-                TcpServerHandler thisHandler = this;
-                Channel proxyChannel = remoteConnectionServer.initTcpServer(port, new ChannelInitializer<SocketChannel>() {
+                TcpServer proxyHandler = new TcpServer().initTcpServer(port, new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) {
                         ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(),
-                                new RemoteProxyHandler(thisHandler));
+                                new RemoteProxyHandler(channelClient.channel()));
                         channels.add(ch);
                     }
                 });
-                if (Objects.isNull(proxyChannel)) {
+                if (Objects.isNull(proxyHandler)) {
                     logger.info(" start proxy server on port: " + port + "  fail!");
                     return;
                 }
-                ctxMap.put(channelClient, proxyChannel);
+                ctxMap.put(channelClient.channel(), proxyHandler);
                 message.getHeader().setSuccess(true);
                 this.port = port;
                 logger.info("Register success, start server on port: " + port);
             } catch (java.lang.Exception e) {
-                message.getHeader().setSuccess(false).setDescription(e.getMessage());
-                e.printStackTrace();
+                logger.info("Register fail,  port: " + port);
+                channelClient.close();
                 return;
             }
         }

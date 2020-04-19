@@ -4,6 +4,7 @@ import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageHeader;
 import com.swust.common.protocol.MessageType;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 
 import java.util.logging.Logger;
@@ -20,11 +21,11 @@ public class LocalProxyHandler extends CommonHandler {
      * 本机的netty客户端，该客户端和公网的netty服务端有一个长链接，使用该channel发送消息到公网netty服务端，
      * 之后服务端再将结果响应给外部的请求
      */
-    private CommonHandler proxyHandler;
+    private Channel serverChannel;
     private String remoteChannelId;
 
-    LocalProxyHandler(CommonHandler proxyHandler, String remoteChannelId) {
-        this.proxyHandler = proxyHandler;
+    LocalProxyHandler(Channel serverChannel, String remoteChannelId) {
+        this.serverChannel = serverChannel;
         this.remoteChannelId = remoteChannelId;
     }
 
@@ -36,7 +37,7 @@ public class LocalProxyHandler extends CommonHandler {
         header.setType(MessageType.DATA);
         message.setData(data);
         header.setChannelId(remoteChannelId);
-        proxyHandler.getCtx().writeAndFlush(message);
+        serverChannel.writeAndFlush(message);
     }
 
     @Override
@@ -46,6 +47,6 @@ public class LocalProxyHandler extends CommonHandler {
         MessageHeader header = message.getHeader();
         header.setType(MessageType.DISCONNECTED);
         header.setChannelId(remoteChannelId);
-        proxyHandler.getCtx().writeAndFlush(message);
+        serverChannel.writeAndFlush(message);
     }
 }

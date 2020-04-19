@@ -54,8 +54,6 @@ public class ClientHandler extends CommonHandler {
         header.setType(MessageType.REGISTER).setOpenTcpPort(port).setPassword(password);
         message.setHeader(header);
         ctx.writeAndFlush(message);
-
-        super.channelActive(ctx);
     }
 
     @Override
@@ -69,14 +67,12 @@ public class ClientHandler extends CommonHandler {
         if (type == MessageType.REGISTER_RESULT) {
             processRegisterResult(message);
         } else if (type == MessageType.CONNECTED) {
-            processConnected(ctx.channel(), message);
-        } else if (type == MessageType.DISCONNECTED) {
-            processDisconnected(message);
+            processConnected(ctx.channel(),message);
         } else if (type == MessageType.DATA) {
             processData(message);
+        } else if (type == MessageType.DISCONNECTED) {
+            processDisconnected(message);
         } else if (type == MessageType.KEEPALIVE) {
-            // 心跳包, 不处理
-            //lossConnectCount.getAndSet(0);
         } else {
             throw new ClientException("Unknown type: " + type);
         }
@@ -128,22 +124,18 @@ public class ClientHandler extends CommonHandler {
      * 该请求来源于，请求外网暴露的端口，外网通过netty服务端转发来到这里的
      * 请求内部代理服务，建立netty客户端，请求访问本地的服务，获取返回结果
      */
-    private void processConnected(Channel clientChannel, Message receiveMessage) {
+    private void processConnected(Channel serverChannel,Message receiveMessage) {
         try {
-            ClientHandler thisHandler = this;
             TcpClient localConnection = new TcpClient();
             Channel channel = localConnection.connect(proxyAddress, proxyPort, new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) {
-                    LocalProxyHandler localProxyHandler = new LocalProxyHandler(thisHandler,
+                    LocalProxyHandler localProxyHandler = new LocalProxyHandler(serverChannel,
                             receiveMessage.getHeader().getChannelId());
                     ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(), localProxyHandler);
-                    System.out.println("ch:" + ch);
                     channelHandlerMap.put(receiveMessage.getHeader().getChannelId(), localProxyHandler);
                 }
             });
-
-            System.out.println("ch:" + channel);
             channelGroup.add(channel);
         } catch (Exception e) {
             logger.throwing(getClass().getName(), "连接内网服务失败...........", e);
