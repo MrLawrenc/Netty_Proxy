@@ -7,7 +7,7 @@ import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageType;
 import com.swust.server.ExtranetServer;
-import io.netty.channel.Channel;
+import com.swust.server.ServerManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
@@ -19,7 +19,6 @@ import io.netty.handler.timeout.IdleStateEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author : LiuMing
@@ -30,16 +29,6 @@ public class TcpServerHandler extends CommonHandler {
     private String password;
 
 
-    /**
-     * key channel id  value 对应得外网代理服务端
-     */
-    private static ConcurrentHashMap<String, ExtranetServer> idChannelMap = new ConcurrentHashMap<>();
-
-
-    /**
-     * key 客户端channel   value 对应得外网代理服务端
-     */
-    private static ConcurrentHashMap<Channel, ExtranetServer> channelMap = new ConcurrentHashMap<>();
     /**
      * 默认读超时上限
      */
@@ -63,9 +52,9 @@ public class TcpServerHandler extends CommonHandler {
             processRegister(ctx, message);
         } else {
             if (type == MessageType.DISCONNECTED) {
-                processDisconnected(ctx.channel());
+                processDisconnected(message);
             } else if (type == MessageType.DATA) {
-                processData(ctx.channel(), message);
+                processData(message);
             } else if (type == MessageType.KEEPALIVE) {
                 // 心跳包
                 DEFAULT_COUNT.put(ctx, 0);
@@ -75,13 +64,14 @@ public class TcpServerHandler extends CommonHandler {
         }
     }
 
+
+    /**
+     * 暴露的外网代理服务端资源清理
+     */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        LogUtil.errorLog("服务端触发channelInactive,即将关闭对应的外网代理服务端 local:{}   remote:{}", ctx.channel().localAddress(), ctx.channel().remoteAddress());
-        channelMap.get(ctx.channel()).close();
-        channelMap.remove(ctx.channel());
+        ServerManager.INSTANCE.removeChannelMap(ctx.channel());
     }
-
 
     /**
      * 处理客户端注册,每个客户端注册成功都会启动一个服务，绑定客户端指定的端口
@@ -108,7 +98,7 @@ public class TcpServerHandler extends CommonHandler {
                     LogUtil.errorLog(" start proxy server on port: " + port + "  fail!");
                     return;
                 }
-                channelMap.put(channelClient.channel(), extranetServer);
+                ServerManager.INSTANCE.add2ChannelMap(channelClient.channel(), extranetServer);
                 message.getHeader().setSuccess(true);
                 LogUtil.infoLog("Register success, start server on port: " + port);
             } catch (java.lang.Exception e) {
@@ -124,12 +114,12 @@ public class TcpServerHandler extends CommonHandler {
     /**
      * 处理收到转发的内网响应数据包
      */
-    private void processData(Channel channel, Message message) {
-        ExtranetServer extranetServer = channelMap.get(channel);
-        if (Objects.isNull(extranetServer)) {
+    private void processData(Message message) {
+        ChannelHandlerContext handlerContext = ServerManager.ID_CHANNEL_MAP.get(message.getHeader().getChannelId());
+        if (Objects.isNull(handlerContext)) {
             LogUtil.errorLog("收到内网代理客户端的消息，但是未找到相应的外网代理服务单端返回！msg:{}", message.getHeader().toString());
         } else {
-            extranetServer.getChannel().write(message.getData());
+            handlerContext.writeAndFlush(message.getData());
         }
 
     }
@@ -137,11 +127,13 @@ public class TcpServerHandler extends CommonHandler {
     /**
      * 断开,先关闭外网暴露的代理，在关闭连接的客户端
      */
-    private void processDisconnected(Channel channel) throws InterruptedException {
-        ExtranetServer extranetServer = channelMap.get(channel);
-        if (Objects.nonNull(extranetServer)) {
-            LogUtil.warnLog("收到内网代理客户端的关闭请求! 即将关闭相应的外网代理服务端！");
-            extranetServer.close();
+    private void processDisconnected(Message message) throws InterruptedException {
+        String channelId = message.getHeader().getChannelId();
+        ChannelHandlerContext handlerContext = ServerManager.ID_CHANNEL_MAP.get(channelId);
+        if (Objects.nonNull(handlerContext)) {
+            LogUtil.warnLog("收到内网代理客户端的关闭请求! 即将关闭与外网代理服务端连接的客户端！移除channelId:{}", channelId);
+            handlerContext.channel().close();
+            ServerManager.INSTANCE.removeIdChannelMap(channelId);
         }
     }
 

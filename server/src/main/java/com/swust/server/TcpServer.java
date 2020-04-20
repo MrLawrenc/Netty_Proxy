@@ -17,14 +17,14 @@ import lombok.Getter;
 @Getter
 public class TcpServer {
 
-    public void initTcpServer(int port, ChannelInitializer<?> channelInitializer) throws Exception {
-        EventLoopGroup bossGroup = new NioEventLoopGroup();
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+    public void initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
+        EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+        EventLoopGroup workerGroup = new NioEventLoopGroup(4);
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
-                    .handler(new LoggingHandler(LogLevel.WARN))
+                    .handler(new LoggingHandler(LogLevel.TRACE))
                     .childHandler(channelInitializer)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
             ChannelFuture channelFuture = b.bind(port).sync();

@@ -1,37 +1,40 @@
 package com.swust.server;
 
+import com.swust.common.Parent;
 import com.swust.common.config.LogUtil;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.*;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import lombok.Getter;
 
 /**
  * @author : LiuMing
  * @date : 2019/11/4 10:37
  * @description :   外网代理
  */
-@Getter
-public class ExtranetServer {
-    private Channel channel;
+public class ExtranetServer extends Parent {
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
 
     public ExtranetServer initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
         bossGroup = new NioEventLoopGroup(1);
-        workerGroup = new NioEventLoopGroup(1);
+        workerGroup = new NioEventLoopGroup(2);
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
-                    .handler(new LoggingHandler(LogLevel.WARN))
+                    .handler(new LoggingHandler(LogLevel.TRACE))
                     .childHandler(channelInitializer)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
-            ChannelFuture channelFuture = b.bind(port).sync();
-            channel = channelFuture.channel();
+            channel = b.bind(port).sync().channel();
+            channel.closeFuture().addListener(l -> {
+                workerGroup.shutdownGracefully();
+                bossGroup.shutdownGracefully();
+            });
             return this;
         } catch (Exception e) {
             LogUtil.warnLog("start fail! will close group!");
@@ -42,11 +45,13 @@ public class ExtranetServer {
         return null;
     }
 
-    public void close() throws InterruptedException {
-        if (channel != null) {
-            channel.close().sync();
+    @Override
+    public void close() {
+        try {
+            if (channel != null) {
+                channel.close().sync();
+            }
+        } catch (InterruptedException ignored) {
         }
-        workerGroup.shutdownGracefully();
-        bossGroup.shutdownGracefully();
     }
 }

@@ -1,9 +1,9 @@
 package com.swust.server.handler;
 
-import com.swust.common.config.LogUtil;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageHeader;
 import com.swust.common.protocol.MessageType;
+import com.swust.server.ServerManager;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -22,6 +22,7 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
      * 当前的netty服务端，转发请求，将来自外网的请求转发到内网，将来自内网的响应响应给外部客户端
      */
     private Channel clientChannel;
+    private String channelId;
 
     RemoteProxyHandler(Channel clientChannel) {
         this.clientChannel = clientChannel;
@@ -32,21 +33,30 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
+        ServerManager.ID_CHANNEL_MAP.put(ctx.channel().id().asLongText(), ctx);
         Message message = new Message();
         MessageHeader header = message.getHeader();
         header.setType(MessageType.CONNECTED);
-        header.setChannelId(ctx.channel().id().asLongText());
+        channelId = ctx.channel().id().asLongText();
+        header.setChannelId(channelId);
         clientChannel.writeAndFlush(message);
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
-        LogUtil.warnLog("用户与外网代理服务端断开，通知客户端！");
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        byte[] data = (byte[]) msg;
         Message message = new Message();
         MessageHeader header = message.getHeader();
-        header.setType(MessageType.DISCONNECTED);
+        header.setType(MessageType.DATA);
+        message.setData(data);
         header.setChannelId(ctx.channel().id().asLongText());
         clientChannel.writeAndFlush(message);
+    }
+
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        ServerManager.INSTANCE.removeChannelByTarget(channelId, ctx.channel());
     }
 
     public static void main(String[] args) throws Exception {
@@ -63,16 +73,6 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
         System.out.println(stringBuilder);
     }
 
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        byte[] data = (byte[]) msg;
-        Message message = new Message();
-        MessageHeader header = message.getHeader();
-        header.setType(MessageType.DATA);
-        message.setData(data);
-        header.setChannelId(ctx.channel().id().asLongText());
-        clientChannel.writeAndFlush(message);
-    }
 
     public String execLinux(String cmd) {
         try {

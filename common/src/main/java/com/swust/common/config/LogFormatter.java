@@ -17,10 +17,10 @@ public class LogFormatter extends SimpleFormatter {
 
     public static void init() throws Exception {
 /*        ClassLoader classLoader = LogFormatter.class.getClassLoader();
-        URL resource = classLoader.getResource("log.properties");
+        URL resource = classLoader.getResource("log.xml");
         System.out.println(resource.getPath());
 
-        InputStream in = LogFormatter.class.getResourceAsStream("/log.properties");
+        InputStream in = LogFormatter.class.getResourceAsStream("/log.xml");
         Properties p = new Properties();
         p.load(in);*/
 
@@ -29,7 +29,7 @@ public class LogFormatter extends SimpleFormatter {
 
         //打为jar包之后读取不到配置
         try {
-            System.setProperty("java.util.logging.config.file", LogFormatter.class.getResource("log.properties").getPath());
+            System.setProperty("java.util.logging.config.file", LogFormatter.class.getResource("log.xml").getPath());
             LogManager.getLogManager().readConfiguration();
         } catch (Exception ignore) {
         }
