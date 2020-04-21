@@ -36,10 +36,6 @@ public class ClientHandler extends CommonHandler {
     private String proxyAddress;
     private int proxyPort;
     /**
-     * 是否注册
-     */
-    private boolean register = false;
-    /**
      * 默认重新拉起客户端的起始秒数
      */
     private static final int DEFAULT_TRY_SECONDS = 10;

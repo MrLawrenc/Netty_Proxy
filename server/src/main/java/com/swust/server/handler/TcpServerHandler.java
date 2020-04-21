@@ -79,24 +79,33 @@ public class TcpServerHandler extends CommonHandler {
      * @param channelClient 与当前服务端保持连接的内网channel
      */
     private void processRegister(ChannelHandlerContext channelClient, Message message) {
-        ExtranetServer result = ServerManager.INSTANCE.hasServer4ChannelMap(channelClient.channel(), message.getHeader().getOpenTcpPort());
+        boolean needRegister = false;
+        //客户端指定对外开放的端口
+        int port = message.getHeader().getOpenTcpPort();
+        ExtranetServer result = ServerManager.INSTANCE.hasServer4ChannelMap(channelClient.channel(), port);
         if (result != null) {
-            LogUtil.warnLog("存在与当前客户端绑定的代理服务端，代理服务端端口:{}!", message.getHeader().getOpenTcpPort());
+            LogUtil.warnLog("存在与当前客户端绑定的代理服务端，代理服务端端口:{}!", port);
             if (result.getChannel().isActive()) {
                 LogUtil.infoLog("当前绑定的代理服务端仍然存在，将不处理此次开启代理服务端的请求！");
                 return;
             }
             result.getChannel().close();
             LogUtil.warnLog("当前绑定的代理服务端已失活，即将重新开启代理！");
+        } else {
+            ExtranetServer old = ExtranetServer.ipMap.get(port);
+            if (Objects.isNull(old)) {
+                LogUtil.infoLog("不存在与当前客户端绑定的代理服务端，即将开启新代理！msg:{}", JSON.toJSONString(message));
+                needRegister = true;
+            } else {
+                LogUtil.infoLog("不存在与当前客户端绑定的代理服务端，但包含与当前端口{}绑定的代理服务端，直接绑定！msg:{}", port, JSON.toJSONString(message));
+                ServerManager.INSTANCE.add2ChannelMap(channelClient.channel(), old);
+            }
         }
 
         String password = message.getHeader().getPassword();
-        LogUtil.infoLog("注册消息:{}", JSON.toJSONString(message));
         if (this.password == null || !this.password.equals(password)) {
             message.getHeader().setSuccess(false).setDescription("Token is wrong");
-        } else {
-            //客户端指定对外开放的端口
-            int port = message.getHeader().getOpenTcpPort();
+        } else if (needRegister) {
             try {
                 ExtranetServer extranetServer = new ExtranetServer().initTcpServer(port, new ChannelInitializer<SocketChannel>() {
                     @Override

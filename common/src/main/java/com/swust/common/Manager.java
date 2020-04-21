@@ -15,7 +15,7 @@ public class Manager<T extends Parent> {
     public static final ConcurrentHashMap<String, ChannelHandlerContext> ID_CHANNEL_MAP = new ConcurrentHashMap<>();
 
     /**
-     * 后期支持一对多
+     * 后期支持一对多.如：内网启动一个客户端，要求服务端开启多个代理服务端请求。
      */
     private final ConcurrentHashMap<Channel, List<T>> CHANNEL_MAP = new ConcurrentHashMap<>();
 

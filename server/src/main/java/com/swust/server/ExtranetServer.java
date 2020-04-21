@@ -10,6 +10,9 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @author : LiuMing
  * @date : 2019/11/4 10:37
@@ -18,6 +21,8 @@ import io.netty.handler.logging.LoggingHandler;
 public class ExtranetServer extends Parent {
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
+
+    public static Map<Integer, ExtranetServer> ipMap = new HashMap<>();
 
 
     public ExtranetServer initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
@@ -35,6 +40,7 @@ public class ExtranetServer extends Parent {
                 workerGroup.shutdownGracefully();
                 bossGroup.shutdownGracefully();
             });
+            ipMap.put(port, this);
             return this;
         } catch (Exception e) {
             workerGroup.shutdownGracefully();
