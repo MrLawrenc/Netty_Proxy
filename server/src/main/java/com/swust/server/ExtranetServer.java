@@ -1,7 +1,6 @@
 package com.swust.server;
 
 import com.swust.common.Parent;
-import com.swust.common.config.LogUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -37,12 +36,10 @@ public class ExtranetServer extends Parent {
             });
             return this;
         } catch (Exception e) {
-            LogUtil.warnLog("start fail! will close group!");
-            e.printStackTrace();
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     @Override

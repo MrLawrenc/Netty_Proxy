@@ -80,7 +80,7 @@ public class TcpServerHandler extends CommonHandler {
      */
     private void processRegister(ChannelHandlerContext channelClient, Message message) {
         String password = message.getHeader().getPassword();
-
+        LogUtil.infoLog("注册消息:{}", JSON.toJSONString(message));
         if (this.password == null || !this.password.equals(password)) {
             message.getHeader().setSuccess(false).setDescription("Token is wrong");
         } else {

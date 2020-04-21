@@ -113,6 +113,6 @@ public final class LogUtil {
      */
     private static String getClzName() {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        return stackTrace.length < 3 ? "  非本地类   " : stackTrace[2].getClassName();
+        return stackTrace.length < 4 ? "  非本地类   " : stackTrace[3].getClassName();
     }
 }
