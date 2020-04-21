@@ -8,9 +8,10 @@ import lombok.Getter;
  * @date : 2020/4/20 16:38
  * @description : TODO
  */
+@Getter
 public abstract class Parent {
-    @Getter
     protected Channel channel;
+    private int port;
 
     protected abstract void close();
 }

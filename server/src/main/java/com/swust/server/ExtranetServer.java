@@ -19,6 +19,7 @@ public class ExtranetServer extends Parent {
     private EventLoopGroup bossGroup;
     private EventLoopGroup workerGroup;
 
+
     public ExtranetServer initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
         bossGroup = new NioEventLoopGroup(1);
         workerGroup = new NioEventLoopGroup(2);

@@ -3,10 +3,7 @@ package com.swust.common;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -17,6 +14,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Manager<T extends Parent> {
     public static final ConcurrentHashMap<String, ChannelHandlerContext> ID_CHANNEL_MAP = new ConcurrentHashMap<>();
 
+    /**
+     * 后期支持一对多
+     */
     private final ConcurrentHashMap<Channel, List<T>> CHANNEL_MAP = new ConcurrentHashMap<>();
 
     public void add2ChannelMap(Channel key, T target) {
@@ -26,6 +26,12 @@ public class Manager<T extends Parent> {
         }
         channels.add(target);
     }
+
+    public T hasServer4ChannelMap(Channel key, int port) {
+        List<T> list = CHANNEL_MAP.get(key);
+        return list == null || list.size() == 0 ? null : list.stream().filter(t -> t.getPort() == port).findFirst().orElse(null);
+    }
+
 
     public void removeChannelMap(Channel key) {
         CHANNEL_MAP.remove(key).forEach(T::close);

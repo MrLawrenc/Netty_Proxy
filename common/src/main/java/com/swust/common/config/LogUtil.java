@@ -29,9 +29,7 @@ public final class LogUtil {
     }
 
     /**
-     * @author : LiuMing
-     * @date : 2019/8/19 11:25
-     * @description :   info日志
+     * info日志
      */
     public static void infoLog(String str, Object... messages) {
         String clzName = getClzName();
@@ -39,9 +37,7 @@ public final class LogUtil {
     }
 
     /**
-     * @author : LiuMing
-     * @date : 2019/9/19 13:32
-     * @description :   debug日志
+     * debug日志
      */
     public static void debugLog(String str, Object... messages) {
         Logger logger = getLogger(getClzName());
@@ -53,9 +49,7 @@ public final class LogUtil {
 
 
     /**
-     * @author : LiuMing
-     * @date : 2019/8/19 13:37
-     * @description :   error日志
+     * error日志
      */
     public static void errorLog(String str, Object... messages) {
         String clzName = getClzName();
@@ -64,9 +58,7 @@ public final class LogUtil {
 
 
     /**
-     * @author : LiuMing
-     * @date : 2019/8/19 13:53
-     * @description :   warn日志
+     * warn日志
      */
     public static void warnLog(String str, Object... messages) {
         String clzName = getClzName();
@@ -75,9 +67,7 @@ public final class LogUtil {
 
     /**
      * @param params 需要拼接的参数
-     * @date : 2019/3/19 13:53
-     * @author Liu Ming
-     * 记录普通的日志信息
+     *               记录普通的日志信息
      */
     @Deprecated
     public static void infoLog(Class clz, String str, Object... params) {
@@ -92,8 +82,6 @@ public final class LogUtil {
     }
 
     /**
-     * @author : Liu Ming
-     * @date : 2019/3/19 13:53
      * 记录异常日志信息
      */
     @Deprecated
@@ -107,9 +95,7 @@ public final class LogUtil {
     }
 
     /**
-     * @author : LiuMing
-     * @date : 2019/9/19 13:28
-     * @description :   获取当前使用日志方法的类名
+     * 获取当前使用日志方法的类名
      */
     private static String getClzName() {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();

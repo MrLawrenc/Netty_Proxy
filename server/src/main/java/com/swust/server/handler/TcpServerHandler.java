@@ -79,6 +79,17 @@ public class TcpServerHandler extends CommonHandler {
      * @param channelClient 与当前服务端保持连接的内网channel
      */
     private void processRegister(ChannelHandlerContext channelClient, Message message) {
+        ExtranetServer result = ServerManager.INSTANCE.hasServer4ChannelMap(channelClient.channel(), message.getHeader().getOpenTcpPort());
+        if (result != null) {
+            LogUtil.warnLog("存在与当前客户端绑定的代理服务端，代理服务端端口:{}!", message.getHeader().getOpenTcpPort());
+            if (result.getChannel().isActive()) {
+                LogUtil.infoLog("当前绑定的代理服务端仍然存在，将不处理此次开启代理服务端的请求！");
+                return;
+            }
+            result.getChannel().close();
+            LogUtil.warnLog("当前绑定的代理服务端已失活，即将重新开启代理！");
+        }
+
         String password = message.getHeader().getPassword();
         LogUtil.infoLog("注册消息:{}", JSON.toJSONString(message));
         if (this.password == null || !this.password.equals(password)) {
