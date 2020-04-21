@@ -1,10 +1,8 @@
 package com.swust.client;
 
+import com.swust.common.config.LogUtil;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LogLevel;
@@ -17,7 +15,7 @@ import io.netty.handler.logging.LoggingHandler;
  */
 public class TcpClient {
 
-    public void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws Exception {
+    public static void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws Exception {
         NioEventLoopGroup workerGroup = new NioEventLoopGroup(2);
         try {
             Bootstrap b = new Bootstrap();
@@ -27,8 +25,17 @@ public class TcpClient {
                     .option(ChannelOption.SO_KEEPALIVE, true)
                     .handler(channelInitializer);
 
-            Channel channel = b.connect(host, port).sync().channel();
-            channel.closeFuture().addListener((ChannelFutureListener) future -> workerGroup.shutdownGracefully());
+            ChannelFuture future = b.connect(host, port).sync();
+            future.addListener((ChannelFutureListener) future1 -> {
+                boolean success = future1.isSuccess();
+                if (success) {
+                    LogUtil.infoLog("连接 {} : {} 成功", host, port);
+                    future1.channel().closeFuture().addListener((ChannelFutureListener) f -> workerGroup.shutdownGracefully());
+                } else {
+                    LogUtil.errorLog("连接 {} : {} 失败", host, port);
+                    workerGroup.shutdownGracefully();
+                }
+            });
         } catch (Exception e) {
             workerGroup.shutdownGracefully();
             throw new RuntimeException("开启客户端失败!");

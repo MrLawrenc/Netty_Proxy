@@ -5,7 +5,6 @@ import com.swust.common.cmd.CmdOptions;
 import com.swust.common.codec.MessageDecoder;
 import com.swust.common.codec.MessageEncoder;
 import com.swust.common.config.LogFormatter;
-import com.swust.common.config.LogUtil;
 import com.swust.common.constant.Constant;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
@@ -86,8 +85,7 @@ public class ClientMain {
     private static String remotePort;
 
     public static void start() throws Exception {
-        TcpClient tcpClient = new TcpClient();
-        tcpClient.connect(serverAddress, Integer.parseInt(serverPort), new ChannelInitializer<SocketChannel>() {
+        TcpClient.connect(serverAddress, Integer.parseInt(serverPort), new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
                 ClientHandler clientHandler = new ClientHandler(Integer.parseInt(remotePort), password,
@@ -97,6 +95,5 @@ public class ClientMain {
                         new IdleStateHandler(60, 20, 0), clientHandler);
             }
         });
-        LogUtil.infoLog("客户端启动成功");
     }
 }

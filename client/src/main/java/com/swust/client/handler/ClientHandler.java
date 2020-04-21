@@ -183,7 +183,7 @@ public class ClientHandler extends CommonHandler {
                 try {
                     // localProxyHandler.getCtx().writeAndFlush("heart pkg");
                 } catch (Exception e) {
-                    logger.warning("time  warning ..................");
+                    LogUtil.warnLog("time  warning ..................");
                 }
             }
         }, 1000 * 60 * 60 * 6, 1000 * 60 * 60 * 6);

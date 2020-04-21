@@ -9,6 +9,12 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
  * @description :   公共handler
  */
 public class CommonHandler extends ChannelInboundHandlerAdapter {
+    protected ChannelHandlerContext ctx;
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        this.ctx = ctx;
+    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
