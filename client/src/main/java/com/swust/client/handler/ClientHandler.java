@@ -42,7 +42,7 @@ public class ClientHandler extends CommonHandler {
     /**
      * 默认重新拉起客户端尝试的次数上限
      */
-    private static final int DEFAULT_TRY_COUNT = 5;
+    private static final int DEFAULT_TRY_COUNT = 10;
 
 
     public ClientHandler(int port, String password, String proxyAddress, int proxyPort) {
@@ -101,7 +101,8 @@ public class ClientHandler extends CommonHandler {
                     ClientMain.start();
                     LogUtil.infoLog("重启客户端成功.............");
                     return;
-                } catch (Throwable ignored) {
+                } catch (Throwable e) {
+                    e.printStackTrace();
                 }
                 count++;
                 LogUtil.warnLog("重启客户端失败，当前是第{}次尝试，即将在{}s后重试！", count, sleep);
@@ -111,7 +112,8 @@ public class ClientHandler extends CommonHandler {
                 } catch (InterruptedException ignored) {
                 }
             }
-
+            LogUtil.errorLog("重试次数达到上限,,,,退出！");
+            System.exit(0);
         });
     }
 

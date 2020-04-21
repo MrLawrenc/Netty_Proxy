@@ -24,7 +24,6 @@ public class LocalProxyHandler extends ChannelInboundHandlerAdapter {
     private String remoteChannelId;
 
     LocalProxyHandler(Channel serverChannel, String remoteChannelId) {
-        System.out.println("severchannel:" + serverChannel + "   id:" + remoteChannelId);
         this.serverChannel = serverChannel;
         this.remoteChannelId = remoteChannelId;
     }
