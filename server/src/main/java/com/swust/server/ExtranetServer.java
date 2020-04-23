@@ -1,7 +1,7 @@
 package com.swust.server;
 
-import com.swust.common.Parent;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
@@ -9,6 +9,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import lombok.Getter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,16 +19,15 @@ import java.util.Map;
  * @date : 2019/11/4 10:37
  * @description :   外网代理
  */
-public class ExtranetServer extends Parent {
-    private EventLoopGroup bossGroup;
-    private EventLoopGroup workerGroup;
+public class ExtranetServer {
 
-    public static Map<Integer, ExtranetServer> ipMap = new HashMap<>();
-
+    @Getter
+    private Channel channel;
+    public static Map<Integer, ExtranetServer> portMap = new HashMap<>();
 
     public ExtranetServer initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
-        bossGroup = new NioEventLoopGroup(1);
-        workerGroup = new NioEventLoopGroup(2);
+        EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+        EventLoopGroup workerGroup = new NioEventLoopGroup(2);
         try {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
@@ -40,22 +40,12 @@ public class ExtranetServer extends Parent {
                 workerGroup.shutdownGracefully();
                 bossGroup.shutdownGracefully();
             });
-            ipMap.put(port, this);
+            portMap.put(port, this);
             return this;
         } catch (Exception e) {
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
             throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void close() {
-        try {
-            if (channel != null) {
-                channel.close().sync();
-            }
-        } catch (InterruptedException ignored) {
         }
     }
 }

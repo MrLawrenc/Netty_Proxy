@@ -56,7 +56,7 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        ServerManager.INSTANCE.removeChannelByTarget(channelId, ctx.channel());
+        ServerManager.ID_CHANNEL_MAP.remove(ctx.channel().id().asLongText());
     }
 
     public static void main(String[] args) throws Exception {
@@ -68,7 +68,7 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
         String line = null;
         StringBuilder stringBuilder = new StringBuilder();
         while ((line = bufferedReader.readLine()) != null) {
-            stringBuilder.append(line + "\n");
+            stringBuilder.append(line).append("\n");
         }
         System.out.println(stringBuilder);
     }

@@ -7,13 +7,13 @@ import com.swust.common.config.LogFormatter;
 import com.swust.common.config.LogUtil;
 import com.swust.common.constant.Constant;
 import com.swust.server.handler.TcpServerHandler;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.commons.cli.*;
 
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 /**
  * @author : LiuMing
@@ -21,8 +21,7 @@ import java.util.logging.Logger;
  * @description :   服务端
  */
 public class ServerMain {
-
-    private static Logger logger = Logger.getGlobal();
+    private static Channel serverChannel;
 
     /**
      * Apache Commons CLI是开源的命令行解析工具，它可以帮助开发者快速构建启动命令，并且帮助你组织命令的参数、以及输出列表等。
@@ -76,8 +75,7 @@ public class ServerMain {
 
 
     private static void start(int port, String password) throws Exception {
-        TcpServer tcpServer = new TcpServer();
-        tcpServer.initTcpServer(port, new ChannelInitializer<SocketChannel>() {
+        serverChannel = new TcpServer().initTcpServer(port, new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
                 TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
@@ -88,5 +86,12 @@ public class ServerMain {
             }
         });
         LogUtil.infoLog("服务端启动成功 port:{} pwd:{}", port, password);
+    }
+
+    /**
+     * 获取服务端channel，该channel永远存在，不会被主动关闭
+     */
+    public static Channel getServerChannel() {
+        return serverChannel;
     }
 }

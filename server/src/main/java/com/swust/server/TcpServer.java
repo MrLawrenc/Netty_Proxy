@@ -17,7 +17,7 @@ import lombok.Getter;
 @Getter
 public class TcpServer {
 
-    public void initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
+    public Channel initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
         EventLoopGroup workerGroup = new NioEventLoopGroup(4);
         try {
@@ -33,11 +33,13 @@ public class TcpServer {
                 workerGroup.shutdownGracefully();
                 bossGroup.shutdownGracefully();
             });
+            return channel;
         } catch (Exception e) {
-            LogUtil.warnLog("start fail! will close group!");
+            LogUtil.warnLog("server start fail! will close group!");
             workerGroup.shutdownGracefully();
             bossGroup.shutdownGracefully();
             throw new RuntimeException("启动服务端失败！");
         }
     }
+
 }

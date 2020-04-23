@@ -122,9 +122,9 @@ public class ClientHandler extends CommonHandler {
      */
     private void processRegisterResult(Message message) {
         if (message.getHeader().isSuccess()) {
-            LogUtil.infoLog("代理服务端开启成功！");
+            LogUtil.infoLog("代理服务端开启成功！server msg:{}",message.getHeader().getDescription());
         } else {
-            LogUtil.infoLog("代理服务端开启失败！{}", message.getHeader().getDescription());
+            LogUtil.errorLog("代理服务端开启失败,即将终止服务！server msg:{}", message.getHeader().getDescription());
             System.exit(0);
         }
     }

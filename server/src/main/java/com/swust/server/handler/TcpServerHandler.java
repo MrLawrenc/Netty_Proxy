@@ -92,7 +92,7 @@ public class TcpServerHandler extends CommonHandler {
             result.getChannel().close();
             LogUtil.warnLog("当前绑定的代理服务端已失活，即将重新开启代理！");
         } else {
-            ExtranetServer old = ExtranetServer.ipMap.get(port);
+            ExtranetServer old = ExtranetServer.portMap.get(port);
             if (Objects.isNull(old)) {
                 LogUtil.infoLog("不存在与当前客户端绑定的代理服务端，即将开启新代理！msg:{}", JSON.toJSONString(message));
                 needRegister = true;
@@ -104,7 +104,7 @@ public class TcpServerHandler extends CommonHandler {
 
         String password = message.getHeader().getPassword();
         if (this.password == null || !this.password.equals(password)) {
-            message.getHeader().setSuccess(false).setDescription("Token is wrong");
+            message.getHeader().setSuccess(false).setDescription("密码错误！");
         } else if (needRegister) {
             try {
                 ExtranetServer extranetServer = new ExtranetServer().initTcpServer(port, new ChannelInitializer<SocketChannel>() {
@@ -119,13 +119,15 @@ public class TcpServerHandler extends CommonHandler {
                     return;
                 }
                 ServerManager.INSTANCE.add2ChannelMap(channelClient.channel(), extranetServer);
-                message.getHeader().setSuccess(true);
+                message.getHeader().setSuccess(true).setDescription("已开启代理客户端绑定到当前端口！");
                 LogUtil.infoLog("Register success, start server on port: " + port);
             } catch (java.lang.Exception e) {
                 e.printStackTrace();
                 LogUtil.errorLog("Register fail, msg:{} port: ", message, port);
                 return;
             }
+        }else {
+            message.getHeader().setSuccess(true).setDescription("已有绑定当前端口的代理服务端，不需要新开启！");
         }
         message.getHeader().setType(MessageType.REGISTER_RESULT);
         ctx.writeAndFlush(message);
