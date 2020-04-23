@@ -17,7 +17,7 @@ public class Manager<T extends Parent> {
     /**
      * 后期支持一对多.如：内网启动一个客户端，要求服务端开启多个代理服务端请求。
      */
-    private final ConcurrentHashMap<Channel, List<T>> CHANNEL_MAP = new ConcurrentHashMap<>();
+    public final ConcurrentHashMap<Channel, List<T>> CHANNEL_MAP = new ConcurrentHashMap<>();
 
     public void add2ChannelMap(Channel key, T target) {
         List<T> channels = CHANNEL_MAP.get(key);
@@ -34,6 +34,8 @@ public class Manager<T extends Parent> {
 
 
     public void removeChannelMap(Channel key) {
+        System.out.println("1  "+CHANNEL_MAP);
+        System.out.println("2  "+CHANNEL_MAP.remove(key));
         Optional.ofNullable(CHANNEL_MAP.remove(key)).ifPresent(r -> r.forEach(T::close));
     }
 

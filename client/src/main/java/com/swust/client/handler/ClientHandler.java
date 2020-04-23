@@ -158,7 +158,7 @@ public class ClientHandler extends CommonHandler {
      * if message.getType() == MessageType.DISCONNECTED
      */
     private void processDisconnected(Channel channel, Message message) throws Exception {
-        //todo
+        ClientManager.ID_CHANNEL_MAP.get(message.getHeader().getChannelId());
     }
 
     /**

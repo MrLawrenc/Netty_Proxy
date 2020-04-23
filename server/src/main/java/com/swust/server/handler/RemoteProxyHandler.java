@@ -1,10 +1,11 @@
 package com.swust.server.handler;
 
+import com.swust.common.config.LogUtil;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageHeader;
 import com.swust.common.protocol.MessageType;
+import com.swust.server.ExtranetServer;
 import com.swust.server.ServerManager;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
@@ -21,25 +22,22 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
     /**
      * 当前的netty服务端，转发请求，将来自外网的请求转发到内网，将来自内网的响应响应给外部客户端
      */
-    private Channel clientChannel;
     private String channelId;
 
-    RemoteProxyHandler(Channel clientChannel) {
-        this.clientChannel = clientChannel;
-    }
 
     /**
      * 外部请求外网代理的端口时调用，保存的服务端channel会给内网客户端发送消息 proxyHandler.getCtx().writeAndFlush(message);
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
+        System.out.println("新连接连上代理服务端..............");
         ServerManager.ID_CHANNEL_MAP.put(ctx.channel().id().asLongText(), ctx);
         Message message = new Message();
         MessageHeader header = message.getHeader();
         header.setType(MessageType.CONNECTED);
         channelId = ctx.channel().id().asLongText();
         header.setChannelId(channelId);
-        clientChannel.writeAndFlush(message);
+        ExtranetServer.clientChannel.writeAndFlush(message);
     }
 
     @Override
@@ -50,13 +48,20 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
         header.setType(MessageType.DATA);
         message.setData(data);
         header.setChannelId(ctx.channel().id().asLongText());
-        clientChannel.writeAndFlush(message);
+        ExtranetServer.clientChannel.writeAndFlush(message);
     }
 
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         ServerManager.ID_CHANNEL_MAP.remove(ctx.channel().id().asLongText());
+
+        LogUtil.errorLog("内网代理客户端断开连接，即将通知服务端！");
+        Message message = new Message();
+        MessageHeader header = message.getHeader();
+        header.setType(MessageType.DISCONNECTED).setOpenTcpPort(999999);
+        header.setChannelId(ctx.channel().id().asLongText());
+        ExtranetServer.clientChannel.writeAndFlush(message);
     }
 
     public static void main(String[] args) throws Exception {

@@ -70,7 +70,7 @@ public class TcpServerHandler extends CommonHandler {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        ServerManager.INSTANCE.removeChannelMap(ctx.channel());
+        ServerManager.CHANNEL_MAP.remove(ctx.channel());
     }
 
     /**
@@ -82,7 +82,7 @@ public class TcpServerHandler extends CommonHandler {
         boolean needRegister = false;
         //客户端指定对外开放的端口
         int port = message.getHeader().getOpenTcpPort();
-        ExtranetServer result = ServerManager.INSTANCE.hasServer4ChannelMap(channelClient.channel(), port);
+        ExtranetServer result = ServerManager.hasServer4ChannelMap(channelClient.channel(), port);
         if (result != null) {
             LogUtil.warnLog("存在与当前客户端绑定的代理服务端，代理服务端端口:{}!", port);
             if (result.getChannel().isActive()) {
@@ -92,13 +92,14 @@ public class TcpServerHandler extends CommonHandler {
             result.getChannel().close();
             LogUtil.warnLog("当前绑定的代理服务端已失活，即将重新开启代理！");
         } else {
-            ExtranetServer old = ExtranetServer.portMap.get(port);
+            ExtranetServer old = ServerManager.PORT_MAP.get(port);
             if (Objects.isNull(old)) {
                 LogUtil.infoLog("不存在与当前客户端绑定的代理服务端，即将开启新代理！msg:{}", JSON.toJSONString(message));
                 needRegister = true;
             } else {
                 LogUtil.infoLog("不存在与当前客户端绑定的代理服务端，但包含与当前端口{}绑定的代理服务端，直接绑定！msg:{}", port, JSON.toJSONString(message));
-                ServerManager.INSTANCE.add2ChannelMap(channelClient.channel(), old);
+                ServerManager.add2ChannelMap(channelClient.channel(), old);
+                ExtranetServer.clientChannel = channelClient.channel();
             }
         }
 
@@ -107,18 +108,19 @@ public class TcpServerHandler extends CommonHandler {
             message.getHeader().setSuccess(false).setDescription("密码错误！");
         } else if (needRegister) {
             try {
-                ExtranetServer extranetServer = new ExtranetServer().initTcpServer(port, new ChannelInitializer<SocketChannel>() {
+                ExtranetServer extranetServer = new ExtranetServer().initTcpServer(channelClient.channel(), port, new ChannelInitializer<SocketChannel>() {
                     @Override
                     public void initChannel(SocketChannel ch) {
                         ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(),
-                                new RemoteProxyHandler(channelClient.channel()));
+                                new RemoteProxyHandler());
                     }
                 });
                 if (Objects.isNull(extranetServer)) {
                     LogUtil.errorLog(" start proxy server on port: " + port + "  fail!");
                     return;
                 }
-                ServerManager.INSTANCE.add2ChannelMap(channelClient.channel(), extranetServer);
+                ServerManager.PORT_MAP.put(port, extranetServer);
+                ServerManager.add2ChannelMap(channelClient.channel(), extranetServer);
                 message.getHeader().setSuccess(true).setDescription("已开启代理客户端绑定到当前端口！");
                 LogUtil.infoLog("Register success, start server on port: " + port);
             } catch (java.lang.Exception e) {
@@ -126,7 +128,7 @@ public class TcpServerHandler extends CommonHandler {
                 LogUtil.errorLog("Register fail, msg:{} port: ", message, port);
                 return;
             }
-        }else {
+        } else {
             message.getHeader().setSuccess(true).setDescription("已有绑定当前端口的代理服务端，不需要新开启！");
         }
         message.getHeader().setType(MessageType.REGISTER_RESULT);
@@ -155,7 +157,7 @@ public class TcpServerHandler extends CommonHandler {
         if (Objects.nonNull(handlerContext)) {
             LogUtil.warnLog("收到内网代理客户端的关闭请求! 即将关闭与外网代理服务端连接的客户端！移除channelId:{}", channelId);
             handlerContext.channel().close();
-            ServerManager.INSTANCE.removeIdChannelMap(channelId);
+            ServerManager.removeIdChannelMap(channelId);
         }
     }
 
