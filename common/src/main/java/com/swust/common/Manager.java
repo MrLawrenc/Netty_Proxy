@@ -34,7 +34,7 @@ public class Manager<T extends Parent> {
 
 
     public void removeChannelMap(Channel key) {
-        Optional.of(CHANNEL_MAP.remove(key)).ifPresent(r -> r.forEach(T::close));
+        Optional.ofNullable(CHANNEL_MAP.remove(key)).ifPresent(r -> r.forEach(T::close));
     }
 
     public void removeChannelByTarget(String channelId, Channel target) {
