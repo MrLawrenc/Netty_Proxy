@@ -37,6 +37,7 @@ public class TcpClient {
                 }
             });
         } catch (Exception e) {
+            e.printStackTrace();
             workerGroup.shutdownGracefully();
             throw new RuntimeException("开启客户端失败!");
         }

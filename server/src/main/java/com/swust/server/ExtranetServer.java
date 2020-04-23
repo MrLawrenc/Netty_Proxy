@@ -1,7 +1,7 @@
 package com.swust.server;
 
+import com.swust.common.Parent;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
@@ -9,7 +9,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import lombok.Getter;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,10 +18,8 @@ import java.util.Map;
  * @date : 2019/11/4 10:37
  * @description :   外网代理
  */
-public class ExtranetServer {
+public class ExtranetServer extends Parent {
 
-    @Getter
-    private Channel channel;
     public static Map<Integer, ExtranetServer> portMap = new HashMap<>();
 
     public ExtranetServer initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
@@ -47,5 +44,10 @@ public class ExtranetServer {
             bossGroup.shutdownGracefully();
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    protected void close() {
+
     }
 }
