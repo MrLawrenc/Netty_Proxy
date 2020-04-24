@@ -38,7 +38,7 @@ public class ClientHandler extends CommonHandler {
     /**
      * 默认重新拉起客户端的起始秒数
      */
-    private static final int DEFAULT_TRY_SECONDS = 10;
+    private static final int DEFAULT_TRY_SECONDS = 4;
     /**
      * 默认重新拉起客户端尝试的次数上限
      */
@@ -98,21 +98,18 @@ public class ClientHandler extends CommonHandler {
             int count = 0;
             while (count < DEFAULT_TRY_COUNT) {
                 try {
+                    TimeUnit.SECONDS.sleep(sleep);
                     ClientMain.start();
                     LogUtil.infoLog("重启客户端成功.............");
                     return;
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
+                sleep <<= 1;
                 count++;
                 LogUtil.warnLog("重启客户端失败，当前是第{}次尝试，即将在{}s后重试！", count, sleep);
-                try {
-                    TimeUnit.SECONDS.sleep(sleep);
-                    sleep <<= 1;
-                } catch (InterruptedException ignored) {
-                }
             }
-            LogUtil.errorLog("重试次数达到上限,,,,退出！");
+            LogUtil.errorLog("重试次数达到上限,,,,即将正常退出！");
             System.exit(0);
         });
     }
