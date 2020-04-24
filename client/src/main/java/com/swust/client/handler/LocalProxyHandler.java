@@ -30,12 +30,11 @@ public class LocalProxyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        ClientManager.ID_CHANNEL_MAP.put(remoteChannelId, ctx);
+        ClientManager.ID_SERVICE_CHANNEL_MAP.put(remoteChannelId,ctx);
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        LogUtil.infoLog("内网代理客户端收到响应,msg:{}", msg);
         byte[] data = (byte[]) msg;
         Message message = new Message();
         MessageHeader header = message.getHeader();
@@ -54,6 +53,6 @@ public class LocalProxyHandler extends ChannelInboundHandlerAdapter {
         header.setChannelId(remoteChannelId);
         serverChannel.writeAndFlush(message);
 
-        ClientManager.INSTANCE.removeChannelByTarget(remoteChannelId, ctx.channel());
+        ClientManager.ID_SERVICE_CHANNEL_MAP.remove(remoteChannelId);
     }
 }

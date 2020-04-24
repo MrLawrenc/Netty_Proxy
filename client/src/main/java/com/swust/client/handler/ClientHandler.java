@@ -91,7 +91,7 @@ public class ClientHandler extends CommonHandler {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         LogUtil.errorLog("客户端触发channelInactive,即将在关闭相应资源后重连！");
-        ClientManager.INSTANCE.removeChannelMap(ctx.channel());
+        ClientManager.clean();
 
         CompletableFuture.runAsync(() -> {
             int sleep = DEFAULT_TRY_SECONDS;
@@ -122,7 +122,7 @@ public class ClientHandler extends CommonHandler {
      */
     private void processRegisterResult(Message message) {
         if (message.getHeader().isSuccess()) {
-            LogUtil.infoLog("代理服务端开启成功！server msg:{}",message.getHeader().getDescription());
+            LogUtil.infoLog("代理服务端开启成功！server msg:{}", message.getHeader().getDescription());
         } else {
             LogUtil.errorLog("代理服务端开启失败,即将终止服务！server msg:{}", message.getHeader().getDescription());
             System.exit(0);
@@ -135,15 +135,16 @@ public class ClientHandler extends CommonHandler {
      * 请求内部代理服务，建立netty客户端，请求访问本地的服务，获取返回结果
      */
     private void processConnected(Channel channel, Message receiveMessage) {
+        String channelId = receiveMessage.getHeader().getChannelId();
         try {
             IntranetClient intranetClient = new IntranetClient().connect(proxyAddress, proxyPort, new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) {
-                    LocalProxyHandler localProxyHandler = new LocalProxyHandler(channel, receiveMessage.getHeader().getChannelId());
+                    LocalProxyHandler localProxyHandler = new LocalProxyHandler(channel, channelId);
                     ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(), localProxyHandler);
                 }
             });
-            ClientManager.INSTANCE.add2ChannelMap(channel, intranetClient);
+            ClientManager.add2ChannelMap(channel, intranetClient);
         } catch (Exception e) {
             LogUtil.errorLog("连接内网服务失败 msg:{]", e.getMessage());
             Message message = new Message();
@@ -154,26 +155,29 @@ public class ClientHandler extends CommonHandler {
         }
     }
 
-    /**
-     * if message.getType() == MessageType.DISCONNECTED
-     */
-    private void processDisconnected(Channel channel, Message message) throws Exception {
-        ClientManager.ID_CHANNEL_MAP.get(message.getHeader().getChannelId());
-    }
-
-    /**
-     * if message.getType() == MessageType.DATA
-     */
     private void processData(Message message) {
         String channelId = message.getHeader().getChannelId();
-        ChannelHandlerContext context = ClientManager.ID_CHANNEL_MAP.get(channelId);
+        ChannelHandlerContext context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
         if (Objects.isNull(context)) {
-            LogUtil.errorLog("根据外网代理服务端的channelId未找到相应的内网客户端！msg:{}", message.getHeader().toString());
+            LogUtil.errorLog("根据与外网代理服务端连接的用户客户端channelId未找到相应的内网代理客户端！msg:{}", message.getHeader().toString());
         } else {
-            LogUtil.debugLog("内网代理客户端发送消息 msg:{}\n channel:{}", message.toString(), context.channel());
             context.writeAndFlush(message.getData());
         }
     }
+
+    /**
+     * 与代理服务端连接的用户客户端断开连接，处理资源，以及断开内网代理客户端
+     */
+    private void processDisconnected(Channel channel, Message message) throws Exception {
+        ChannelHandlerContext context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(message.getHeader().getChannelId());
+        if (Objects.isNull(context)) {
+            LogUtil.warnLog("收到与外网代理服务端连接的用户客户端断开连接的消息，但未找到与之对应的内网代理客户端channel，可能已经关闭！");
+        } else {
+            context.close();
+            ClientManager.removeChannelMapByProxyClient(channel, message.getHeader().getChannelId());
+        }
+    }
+
 
     /**
      * 维持内网连接,6h执行一次

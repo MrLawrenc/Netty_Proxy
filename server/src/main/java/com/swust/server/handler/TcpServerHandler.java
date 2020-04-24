@@ -8,15 +8,13 @@ import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageType;
 import com.swust.server.ExtranetServer;
 import com.swust.server.ServerManager;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.bytes.ByteArrayDecoder;
-import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -49,7 +47,7 @@ public class TcpServerHandler extends CommonHandler {
         MessageType type = message.getHeader().getType();
         //客户端注册
         if (type == MessageType.REGISTER) {
-            processRegister(ctx, message);
+            processRegister(ctx.channel(), message);
         } else {
             if (type == MessageType.DISCONNECTED) {
                 processDisconnected(message);
@@ -66,23 +64,20 @@ public class TcpServerHandler extends CommonHandler {
 
 
     /**
-     * 暴露的外网代理服务端资源清理
-     */
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        ServerManager.CHANNEL_MAP.remove(ctx.channel());
-    }
-
-    /**
      * 处理客户端注册,每个客户端注册成功都会启动一个服务，绑定客户端指定的端口
      *
-     * @param channelClient 与当前服务端保持连接的内网channel
+     * @param channel 与当前服务端保持连接的内网channel
      */
-    private void processRegister(ChannelHandlerContext channelClient, Message message) {
+    private void processRegister(Channel channel, Message message) {
+        String password = message.getHeader().getPassword();
+        if (this.password == null || !this.password.equals(password)) {
+            message.getHeader().setSuccess(false).setDescription("密码错误！");
+        }
+
         boolean needRegister = false;
         //客户端指定对外开放的端口
         int port = message.getHeader().getOpenTcpPort();
-        ExtranetServer result = ServerManager.hasServer4ChannelMap(channelClient.channel(), port);
+        ExtranetServer result = ServerManager.hasServer4ChannelMap(channel, port);
         if (result != null) {
             LogUtil.warnLog("存在与当前客户端绑定的代理服务端，代理服务端端口:{}!", port);
             if (result.getChannel().isActive()) {
@@ -98,30 +93,23 @@ public class TcpServerHandler extends CommonHandler {
                 needRegister = true;
             } else {
                 LogUtil.infoLog("不存在与当前客户端绑定的代理服务端，但包含与当前端口{}绑定的代理服务端，直接绑定！msg:{}", port, JSON.toJSONString(message));
-                ServerManager.add2ChannelMap(channelClient.channel(), old);
-                ExtranetServer.clientChannel = channelClient.channel();
+                old.getInitializer().setClientChannel(channel);
+                ServerManager.add2ChannelMap(channel, old);
             }
         }
 
-        String password = message.getHeader().getPassword();
-        if (this.password == null || !this.password.equals(password)) {
-            message.getHeader().setSuccess(false).setDescription("密码错误！");
-        } else if (needRegister) {
+        if (needRegister) {
             try {
-                ExtranetServer extranetServer = new ExtranetServer().initTcpServer(channelClient.channel(), port, new ChannelInitializer<SocketChannel>() {
-                    @Override
-                    public void initChannel(SocketChannel ch) {
-                        ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder(),
-                                new RemoteProxyHandler());
-                    }
-                });
+                ExtranetServer extranetServer = new ExtranetServer().initTcpServer(port, channel);
                 if (Objects.isNull(extranetServer)) {
                     LogUtil.errorLog(" start proxy server on port: " + port + "  fail!");
                     return;
                 }
+                extranetServer.setChannel(channel);
                 ServerManager.PORT_MAP.put(port, extranetServer);
-                ServerManager.add2ChannelMap(channelClient.channel(), extranetServer);
+                ServerManager.add2ChannelMap(channel, extranetServer);
                 message.getHeader().setSuccess(true).setDescription("已开启代理客户端绑定到当前端口！");
+
                 LogUtil.infoLog("Register success, start server on port: " + port);
             } catch (java.lang.Exception e) {
                 e.printStackTrace();
@@ -139,28 +127,40 @@ public class TcpServerHandler extends CommonHandler {
      * 处理收到转发的内网响应数据包
      */
     private void processData(Message message) {
-        ChannelHandlerContext handlerContext = ServerManager.ID_CHANNEL_MAP.get(message.getHeader().getChannelId());
-        if (Objects.isNull(handlerContext)) {
-            LogUtil.errorLog("收到内网代理客户端的消息，但是未找到相应的外网代理服务单端返回！msg:{}", message.getHeader().toString());
+        ChannelHandlerContext userCtx = ServerManager.findChannelByMsg(message);
+        if (Objects.isNull(userCtx)) {
+            LogUtil.errorLog("收到内网代理客户端的消息，但是未找到相应与外网代理服务端连接的用户客户端！msg:{}", message.getHeader().toString());
         } else {
-            handlerContext.writeAndFlush(message.getData());
+            userCtx.writeAndFlush(message.getData());
         }
-
     }
 
     /**
      * 断开,先关闭外网暴露的代理，在关闭连接的客户端
      */
     private void processDisconnected(Message message) throws InterruptedException {
-        String channelId = message.getHeader().getChannelId();
-        ChannelHandlerContext handlerContext = ServerManager.ID_CHANNEL_MAP.get(channelId);
-        if (Objects.nonNull(handlerContext)) {
-            LogUtil.warnLog("收到内网代理客户端的关闭请求! 即将关闭与外网代理服务端连接的客户端！移除channelId:{}", channelId);
-            handlerContext.channel().close();
-            ServerManager.removeIdChannelMap(channelId);
+        ChannelHandlerContext userCtx = ServerManager.findChannelByMsg(message);
+        if (Objects.isNull(userCtx)) {
+            LogUtil.warnLog("收到内网客户端断开连接的消息，但未找到与之对应的外网用户客户端，可能已经关闭！");
+        } else {
+            userCtx.close();
         }
     }
 
+    /**
+     * 暴露的外网代理服务端资源清理
+     */
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        LogUtil.errorLog("内网客户端断开连接..................");
+        List<ExtranetServer> servers = ServerManager.CHANNEL_MAP.get(ctx.channel());
+        if (Objects.isNull(servers) || servers.size() == 0) {
+            LogUtil.errorLog("未找到与当前内网客户端绑定的服务端...........");
+        } else {
+            LogUtil.infoLog("断开与对应（当前客户端是与相应的代理服务端绑定的）代理服务端连接的所有用户客户端！");
+            servers.forEach(server -> server.getGroup().close());
+        }
+    }
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
