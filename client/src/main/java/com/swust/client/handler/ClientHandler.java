@@ -18,11 +18,13 @@ import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * @author : LiuMing
@@ -31,10 +33,10 @@ import java.util.concurrent.TimeUnit;
  */
 public class ClientHandler extends CommonHandler {
 
-    private int port;
+    private List<Integer> ports;
     private String password;
-    private String proxyAddress;
-    private int proxyPort;
+    private List<String> proxyAddress;
+    private List<Integer> proxyPort;
     /**
      * 默认重新拉起客户端的起始秒数
      */
@@ -45,19 +47,21 @@ public class ClientHandler extends CommonHandler {
     private static final int DEFAULT_TRY_COUNT = 10;
 
 
-    public ClientHandler(int port, String password, String proxyAddress, int proxyPort) {
-        this.port = port;
+    public ClientHandler(List<String> ports, String password, List<String> proxyAddress, List<String> proxyPort) {
+        this.ports = ports.stream().map(Integer::parseInt).collect(Collectors.toList());
         this.password = password;
         this.proxyAddress = proxyAddress;
-        this.proxyPort = proxyPort;
+        this.proxyPort = proxyPort.stream().map(Integer::parseInt).collect(Collectors.toList());
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        Message message = new Message();
-        MessageHeader header = message.getHeader();
-        header.setType(MessageType.REGISTER).setOpenTcpPort(port).setPassword(password);
-        ctx.writeAndFlush(message);
+        ports.forEach(port -> {
+            Message message = new Message();
+            MessageHeader header = message.getHeader();
+            header.setType(MessageType.REGISTER).setOpenTcpPort(port).setPassword(password);
+            ctx.writeAndFlush(message);
+        });
     }
 
 
@@ -133,8 +137,10 @@ public class ClientHandler extends CommonHandler {
      */
     private void processConnected(Channel channel, Message receiveMessage) {
         String channelId = receiveMessage.getHeader().getChannelId();
+        int openTcpPort = receiveMessage.getHeader().getOpenTcpPort();
+        int index = ports.indexOf(openTcpPort);
         try {
-            IntranetClient intranetClient = new IntranetClient().connect(proxyAddress, proxyPort, new ChannelInitializer<SocketChannel>() {
+            IntranetClient intranetClient = new IntranetClient().connect(proxyAddress.get(index), proxyPort.get(index), new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) {
                     LocalProxyHandler localProxyHandler = new LocalProxyHandler(channel, channelId);
@@ -143,9 +149,14 @@ public class ClientHandler extends CommonHandler {
             });
             ClientManager.add2ChannelMap(channel, intranetClient);
         } catch (Exception e) {
-            LogUtil.errorLog("连接内网服务失败 msg:{]", e.getMessage());
+            e.printStackTrace();
+            LogUtil.errorLog("连接内网服务失败 msg:{}", e.getMessage());
             Message message = new Message();
             MessageHeader header = message.getHeader();
+            if (index == -1) {
+                LogUtil.errorLog("client ports config:{}  current open tcp port:{}", JSON.toJSONString(ports), openTcpPort);
+                header.setDescription("当前msg传递的openTcpPort为空");
+            }
             header.setType(MessageType.DISCONNECTED);
             header.setChannelId(receiveMessage.getHeader().getChannelId());
             ctx.writeAndFlush(message);

@@ -24,10 +24,12 @@ import java.io.LineNumberReader;
 public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
     private Channel clientChannel;
     private ExtranetServer proxyServer;
+    private int port;
 
-    public RemoteProxyHandler(Channel clientChannel, ExtranetServer proxyServer) {
+    public RemoteProxyHandler(Channel clientChannel, ExtranetServer proxyServer, int port) {
         this.clientChannel = clientChannel;
         this.proxyServer = proxyServer;
+        this.port = port;
     }
 
     /**
@@ -40,6 +42,7 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
         Message message = new Message();
         MessageHeader header = message.getHeader();
         header.setType(MessageType.CONNECTED);
+        header.setOpenTcpPort(port);
         header.setChannelId(ctx.channel().id().asLongText());
         clientChannel.writeAndFlush(message);
 

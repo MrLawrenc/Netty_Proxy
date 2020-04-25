@@ -34,7 +34,11 @@ public enum CmdOptions {
     /**
      * 公网服务端对外提供访问内网应用的端口
      */
-    REMOTE_PORT("remote_p", "remote_port", true, "Remote port");
+    REMOTE_PORT("remote_p", "remote_port", true, "Remote port"),
+    /**
+     * 配置文件路径
+     */
+    PROFILE("profile", "Profile", true, "Profile path");
     private String opt;
     private String longOpt;
     private String description;

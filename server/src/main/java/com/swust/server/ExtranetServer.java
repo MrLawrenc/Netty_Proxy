@@ -61,14 +61,14 @@ public class ExtranetServer {
     }
 
     @Data
-    public static class ExtrantServerInitializer extends ChannelInitializer<SocketChannel> {
+    public class ExtrantServerInitializer extends ChannelInitializer<SocketChannel> {
         private Channel clientChannel;
         private ExtranetServer proxyServer;
 
         @Override
         protected void initChannel(SocketChannel ch) throws Exception {
             ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder());
-            ch.pipeline().addLast("remoteHandler", new RemoteProxyHandler(clientChannel,proxyServer));
+            ch.pipeline().addLast("remoteHandler", new RemoteProxyHandler(clientChannel, proxyServer, port));
         }
     }
 }
