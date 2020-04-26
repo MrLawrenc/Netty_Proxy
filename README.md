@@ -12,7 +12,7 @@
 启动命令:
 
 ```shell
-emsp;    java -jar server.jar -port 9527 -password 123lmy
+java -jar server.jar -port 9527 -password 123lmy
 ```
 
 或者简写:
