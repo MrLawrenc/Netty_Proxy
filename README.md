@@ -175,7 +175,7 @@ remotePort=11000,12000
 #### Linux启动脚本例子
 ```shell script
 服务端 nohup java -jar server-2.0.0.jar -port 9527 -password 123lmy >>server.log 2>&1  &9
-客户端 nohup java -jar server-1.1.1.jar -h 服务端地址 -p 9527 -password 123lmy -proxy_h localhost -proxy_p 8080 -remote_p 11000 >>client.log 2>&1  &
+客户端 nohup java -jar client-2.0.0.jar -h 服务端地址 -p 9527 -password 123lmy -proxy_h localhost -proxy_p 8080 -remote_p 11000 >>client.log 2>&1  &
 ```
 
 #### 压力测试
