@@ -14,12 +14,12 @@ import io.netty.handler.logging.LoggingHandler;
  * @description :   tcp连接
  */
 public class TcpClient {
+    public static final NioEventLoopGroup WORKER_GROUP = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors());
 
-    public static void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws Exception {
-        NioEventLoopGroup workerGroup = new NioEventLoopGroup(2);
+    public static void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws RuntimeException {
         try {
             Bootstrap b = new Bootstrap();
-            b.group(workerGroup)
+            b.group(WORKER_GROUP)
                     .channel(NioSocketChannel.class)
                     .handler(new LoggingHandler(LogLevel.ERROR))
                     .option(ChannelOption.SO_KEEPALIVE, true)
@@ -29,17 +29,14 @@ public class TcpClient {
             future.addListener((ChannelFutureListener) future1 -> {
                 boolean success = future1.isSuccess();
                 if (success) {
-                    LogUtil.infoLog("连接 {} : {} 成功", host, port);
-                    future1.channel().closeFuture().addListener((ChannelFutureListener) f -> workerGroup.shutdownGracefully());
+                    LogUtil.infoLog("connect {} : {} success", host, port);
+                    //future1.channel().closeFuture().addListener((ChannelFutureListener) f -> WORKER_GROUP.shutdownGracefully());
                 } else {
-                    LogUtil.errorLog("连接 {} : {} 失败", host, port);
-                    workerGroup.shutdownGracefully();
+                    LogUtil.errorLog("connect {} : {} fail", host, port);
                 }
             });
         } catch (Exception e) {
-            e.printStackTrace();
-            workerGroup.shutdownGracefully();
-            throw new RuntimeException("开启客户端失败!");
+            throw new RuntimeException("start client fail!");
         }
     }
 }

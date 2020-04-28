@@ -150,7 +150,6 @@ public class ClientHandler extends CommonHandler {
             ClientManager.add2ChannelMap(channel, intranetClient);
         } catch (Exception e) {
             e.printStackTrace();
-            LogUtil.errorLog("连接内网服务失败 msg:{}", e.getMessage());
             Message message = new Message();
             MessageHeader header = message.getHeader();
             if (index == -1) {

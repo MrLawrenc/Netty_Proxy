@@ -16,13 +16,14 @@ import lombok.Getter;
  */
 @Getter
 public class TcpServer {
+    public static final EventLoopGroup BOSS_GROUP = new NioEventLoopGroup(1);
+    public static final EventLoopGroup WORKER_GROUP = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors());
 
     public Channel initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
-        EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-        EventLoopGroup workerGroup = new NioEventLoopGroup(4);
+
         try {
             ServerBootstrap b = new ServerBootstrap();
-            b.group(bossGroup, workerGroup)
+            b.group(BOSS_GROUP, WORKER_GROUP)
                     .channel(NioServerSocketChannel.class)
                     .handler(new LoggingHandler(LogLevel.TRACE))
                     .childHandler(channelInitializer)
@@ -30,14 +31,14 @@ public class TcpServer {
             ChannelFuture channelFuture = b.bind(port).sync();
             Channel channel = channelFuture.channel();
             channel.closeFuture().addListener((ChannelFutureListener) future -> {
-                workerGroup.shutdownGracefully();
-                bossGroup.shutdownGracefully();
+                WORKER_GROUP.shutdownGracefully();
+                BOSS_GROUP.shutdownGracefully();
             });
             return channel;
         } catch (Exception e) {
             LogUtil.warnLog("server start fail! will close group!");
-            workerGroup.shutdownGracefully();
-            bossGroup.shutdownGracefully();
+            WORKER_GROUP.shutdownGracefully();
+            BOSS_GROUP.shutdownGracefully();
             throw new RuntimeException("启动服务端失败！");
         }
     }
