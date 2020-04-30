@@ -47,7 +47,7 @@ public class CommandUtil {
             properties.load(new FileInputStream(filePath));
             LogUtil.debugLog(properties.toString());
         } catch (IOException e) {
-            throw new RuntimeException("parse profile error!", e);
+            throw new RuntimeException("Parse profile error!", e);
         }
         return properties;
     }

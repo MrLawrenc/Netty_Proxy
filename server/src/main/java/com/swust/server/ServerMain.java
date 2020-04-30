@@ -85,7 +85,7 @@ public class ServerMain {
                         tcpServerHandler);
             }
         });
-        LogUtil.infoLog("服务端启动成功 port:{} pwd:{}", port, password);
+        LogUtil.infoLog("Server start success on port:{}", port);
     }
 
     /**

@@ -19,28 +19,28 @@ public class TcpServer {
     public static final EventLoopGroup BOSS_GROUP = new NioEventLoopGroup(1);
     public static final EventLoopGroup WORKER_GROUP = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors());
 
-    public Channel initTcpServer(int port, ChannelInitializer<?> channelInitializer) {
-
-        try {
-            ServerBootstrap b = new ServerBootstrap();
-            b.group(BOSS_GROUP, WORKER_GROUP)
-                    .channel(NioServerSocketChannel.class)
-                    .handler(new LoggingHandler(LogLevel.TRACE))
-                    .childHandler(channelInitializer)
-                    .childOption(ChannelOption.SO_KEEPALIVE, true);
-            ChannelFuture channelFuture = b.bind(port).sync();
-            Channel channel = channelFuture.channel();
-            channel.closeFuture().addListener((ChannelFutureListener) future -> {
-                WORKER_GROUP.shutdownGracefully();
-                BOSS_GROUP.shutdownGracefully();
-            });
-            return channel;
-        } catch (Exception e) {
-            LogUtil.warnLog("server start fail! will close group!");
+    public Channel initTcpServer(int port, ChannelInitializer<?> channelInitializer) throws Exception {
+        ServerBootstrap b = new ServerBootstrap();
+        b.group(BOSS_GROUP, WORKER_GROUP)
+                .channel(NioServerSocketChannel.class)
+                .handler(new LoggingHandler(LogLevel.TRACE))
+                .childHandler(channelInitializer)
+                .childOption(ChannelOption.SO_KEEPALIVE, true);
+        ChannelFuture future = b.bind(port).sync();
+        future.addListener(fu -> {
+            if (fu.isSuccess()) {
+                LogUtil.warnLog("Server start success!");
+            } else {
+                LogUtil.warnLog("Server start fail! will close current service!");
+                System.exit(0);
+            }
+        });
+        Channel channel = future.channel();
+        channel.closeFuture().addListener((ChannelFutureListener) f -> {
             WORKER_GROUP.shutdownGracefully();
             BOSS_GROUP.shutdownGracefully();
-            throw new RuntimeException("启动服务端失败！");
-        }
+        });
+        return channel;
     }
 
 }

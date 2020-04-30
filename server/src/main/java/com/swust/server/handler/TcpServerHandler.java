@@ -41,13 +41,13 @@ public class TcpServerHandler extends CommonHandler {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws java.lang.Exception {
         if (!(msg instanceof Message)) {
-            throw new Exception("Unknown message: " + JSON.toJSONString(msg));
+            throw new Exception("Unknown message,msg type: " + msg.getClass().getName());
         }
         Message message = (Message) msg;
         MessageType type = message.getHeader().getType();
         //客户端注册
         if (type == MessageType.REGISTER) {
-            processRegister(ctx.channel(), message);
+            processRegister(ctx, message);
         } else {
             if (type == MessageType.DISCONNECTED) {
                 processDisconnected(message);
@@ -66,12 +66,13 @@ public class TcpServerHandler extends CommonHandler {
     /**
      * 处理客户端注册,每个客户端注册成功都会启动一个服务，绑定客户端指定的端口
      *
-     * @param channel 与当前服务端保持连接的内网channel
+     * @param ctx 与当前服务端保持连接的内网客户端channel
      */
-    private void processRegister(Channel channel, Message message) {
+    private void processRegister(ChannelHandlerContext ctx, Message message) {
+        Channel channel = ctx.channel();
         String password = message.getHeader().getPassword();
         if (this.password == null || !this.password.equals(password)) {
-            message.getHeader().setSuccess(false).setDescription("密码错误！");
+            message.getHeader().setSuccess(false).setDescription("Token check failed!");
         }
 
         boolean needRegister = false;
@@ -79,45 +80,41 @@ public class TcpServerHandler extends CommonHandler {
         int port = message.getHeader().getOpenTcpPort();
         ExtranetServer result = ServerManager.hasServer4ChannelMap(channel, port);
         if (result != null) {
-            LogUtil.warnLog("存在与当前客户端绑定的代理服务端，代理服务端端口:{}!", port);
+            LogUtil.warnLog("The current proxy({}) server already exists!", port);
+            LogUtil.warnLog("The current proxy server already exists and this proxy request is ignored!");
             if (result.getChannel().isActive()) {
-                LogUtil.infoLog("当前绑定的代理服务端仍然存在，将不处理此次开启代理服务端的请求！");
+                LogUtil.warnLog("The current proxy server already exists and this proxy request is ignored!");
                 return;
             }
             result.getChannel().close();
-            LogUtil.warnLog("当前绑定的代理服务端已失活，即将重新开启代理！");
+            LogUtil.warnLog("The current proxy server is deactivated and is about to restart!");
         } else {
             ExtranetServer old = ServerManager.PORT_MAP.get(port);
             if (Objects.isNull(old)) {
-                LogUtil.infoLog("不存在与当前客户端绑定的代理服务端，即将开启新代理！msg:{}", JSON.toJSONString(message));
+                LogUtil.infoLog("There is no proxy server bound to the current client. A new proxy is about to be opened!");
+                LogUtil.infoLog("msg:{}", JSON.toJSONString(message));
                 needRegister = true;
             } else {
-                LogUtil.infoLog("不存在与当前客户端绑定的代理服务端，但包含与当前端口{}绑定的代理服务端，直接绑定！msg:{}", port, JSON.toJSONString(message));
-                old.getInitializer().setClientChannel(channel);
+                LogUtil.infoLog("There is no proxy server bound to the current client,but a proxy server with the port({}) open is bound directly", port);
+                LogUtil.infoLog("msg:{}", JSON.toJSONString(message));
+                old.getInitializer().setClientCtx(ctx);
                 ServerManager.add2ChannelMap(channel, old);
             }
         }
 
         if (needRegister) {
             try {
-                ExtranetServer extranetServer = new ExtranetServer().initTcpServer(port, channel);
-                if (Objects.isNull(extranetServer)) {
-                    LogUtil.errorLog(" start proxy server on port: " + port + "  fail!");
-                    return;
-                }
-                extranetServer.setChannel(channel);
+                ExtranetServer extranetServer = new ExtranetServer().initTcpServer(port, ctx);
                 ServerManager.PORT_MAP.put(port, extranetServer);
                 ServerManager.add2ChannelMap(channel, extranetServer);
-                message.getHeader().setSuccess(true).setDescription("已开启代理客户端绑定到当前端口！");
-
-                LogUtil.infoLog("Register success, start server on port: " + port);
-            } catch (java.lang.Exception e) {
+                message.getHeader().setSuccess(true).setDescription("Server already start port on " + port);
+            } catch (Exception e) {
                 e.printStackTrace();
                 LogUtil.errorLog("Register fail, msg:{} port: ", message, port);
                 return;
             }
         } else {
-            message.getHeader().setSuccess(true).setDescription("已有绑定当前端口的代理服务端，不需要新开启！");
+            message.getHeader().setSuccess(true).setDescription("A proxy server with the current port bound does not need to be opened(already open)!");
         }
         message.getHeader().setType(MessageType.REGISTER_RESULT);
         ctx.writeAndFlush(message);
@@ -129,7 +126,8 @@ public class TcpServerHandler extends CommonHandler {
     private void processData(Message message) {
         ChannelHandlerContext userCtx = ServerManager.findChannelByMsg(message);
         if (Objects.isNull(userCtx)) {
-            LogUtil.errorLog("收到内网代理客户端的消息，但是未找到相应与外网代理服务端连接的用户客户端！msg:{}", message.getHeader().toString());
+            LogUtil.errorLog("Received Intranet proxy client message，but the corresponding proxy server was not found! ");
+            LogUtil.errorLog("msg:{}", message.getHeader().toString());
         } else {
             userCtx.writeAndFlush(message.getData());
         }
@@ -141,7 +139,8 @@ public class TcpServerHandler extends CommonHandler {
     private void processDisconnected(Message message) throws InterruptedException {
         ChannelHandlerContext userCtx = ServerManager.findChannelByMsg(message);
         if (Objects.isNull(userCtx)) {
-            LogUtil.warnLog("收到内网客户端断开连接的消息，但未找到与之对应的外网用户客户端，可能已经关闭！");
+            LogUtil.warnLog("Received the message of disconnection of the internal network client, " +
+                    "but did not find  user client, may have closed!");
         } else {
             userCtx.close();
         }
@@ -152,12 +151,12 @@ public class TcpServerHandler extends CommonHandler {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        LogUtil.errorLog("内网客户端断开连接..................");
+        LogUtil.errorLog("The client is disconnected");
         List<ExtranetServer> servers = ServerManager.CHANNEL_MAP.get(ctx.channel());
         if (Objects.isNull(servers) || servers.size() == 0) {
-            LogUtil.errorLog("未找到与当前内网客户端绑定的服务端...........");
+            LogUtil.errorLog("The proxy server opened based on the client was not found!");
         } else {
-            LogUtil.infoLog("断开与对应（当前客户端是与相应的代理服务端绑定的）代理服务端连接的所有用户客户端！");
+            LogUtil.infoLog("Disconnect all proxy servers that are opened according to the client!");
             servers.forEach(server -> server.getGroup().close());
         }
     }
