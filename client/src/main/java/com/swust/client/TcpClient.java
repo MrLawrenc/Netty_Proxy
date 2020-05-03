@@ -14,7 +14,7 @@ import io.netty.handler.logging.LoggingHandler;
  * @description :   tcp连接
  */
 public class TcpClient {
-    private static final NioEventLoopGroup WORKER_GROUP = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors());
+    private static final NioEventLoopGroup WORKER_GROUP = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2);
 
     public static void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws RuntimeException {
         try {

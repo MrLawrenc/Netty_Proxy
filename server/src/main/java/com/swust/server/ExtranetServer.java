@@ -38,7 +38,7 @@ public class ExtranetServer {
         this.port = port;
         this.initializer = new ExtrantServerInitializer(clientCtx, this);
         ServerBootstrap b = new ServerBootstrap();
-        b.group(TcpServer.BOSS_GROUP, TcpServer.WORKER_GROUP)
+        b.group(ServerManager.PROXY_BOSS_GROUP, ServerManager.PROXY_WORKER_GROUP)
                 .channel(NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.TRACE))
                 .childHandler(initializer)

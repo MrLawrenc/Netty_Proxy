@@ -16,12 +16,12 @@ import lombok.Getter;
  */
 @Getter
 public class TcpServer {
-    public static final EventLoopGroup BOSS_GROUP = new NioEventLoopGroup(1);
-    public static final EventLoopGroup WORKER_GROUP = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors());
 
     public Channel initTcpServer(int port, ChannelInitializer<?> channelInitializer) throws Exception {
         ServerBootstrap b = new ServerBootstrap();
-        b.group(BOSS_GROUP, WORKER_GROUP)
+        NioEventLoopGroup boss = new NioEventLoopGroup(1);
+        NioEventLoopGroup work = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors());
+        b.group(boss, work)
                 .channel(NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.TRACE))
                 .childHandler(channelInitializer)
@@ -37,8 +37,10 @@ public class TcpServer {
         });
         Channel channel = future.channel();
         channel.closeFuture().addListener((ChannelFutureListener) f -> {
-            WORKER_GROUP.shutdownGracefully();
-            BOSS_GROUP.shutdownGracefully();
+            work.shutdownGracefully();
+            boss.shutdownGracefully();
+            ServerManager.PROXY_BOSS_GROUP.shutdownGracefully();
+            ServerManager.PROXY_WORKER_GROUP.shutdownGracefully();
         });
         return channel;
     }

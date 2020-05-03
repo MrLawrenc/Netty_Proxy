@@ -3,6 +3,8 @@ package com.swust.server;
 import com.swust.common.protocol.Message;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,6 +15,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * @description : 工具类
  */
 public final class ServerManager {
+
+    public static final EventLoopGroup PROXY_BOSS_GROUP = new NioEventLoopGroup(1);
+    public static final EventLoopGroup PROXY_WORKER_GROUP = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors());
+
 
     /**
      * 与当前外网代理服务端连接的用户客户端channel，使用其channel id作为msg的头信息进行传递
