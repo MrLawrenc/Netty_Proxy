@@ -26,10 +26,6 @@ import java.util.stream.Collectors;
  */
 public class ClientHandler extends CommonHandler {
 
-    /**
-     * 标记准备开启内网的客户端，防止在执行{@link #processData(Message)}方法时，内网代理客户端还未开启完毕，导致获取不到
-     */
-    public static List<String> readyOpenClient = Collections.synchronizedList(new ArrayList<>());
 
     private List<Integer> ports;
     private String password;
@@ -78,7 +74,7 @@ public class ClientHandler extends CommonHandler {
         } else if (type == MessageType.CONNECTED) {
             processConnected(ctx, message);
         } else if (type == MessageType.DATA) {
-            CompletableFuture.runAsync(() -> processData(message));
+            processData(message);
         } else if (type == MessageType.DISCONNECTED) {
             processDisconnected(ctx.channel(), message);
         } else {
@@ -142,7 +138,6 @@ public class ClientHandler extends CommonHandler {
             IntranetClient intranetClient = new IntranetClient().connect(proxyAddress.get(index)
                     , proxyPort.get(index), ctx, channelId);
             ClientManager.add2ChannelMap(channel, intranetClient);
-            readyOpenClient.add(channelId);
         } catch (Exception e) {
             e.printStackTrace();
             Message message = new Message();

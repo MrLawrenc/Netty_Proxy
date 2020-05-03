@@ -1,6 +1,5 @@
 package com.swust.client;
 
-import com.swust.client.handler.ClientHandler;
 import com.swust.client.handler.LocalProxyHandler;
 import com.swust.common.config.LogUtil;
 import io.netty.bootstrap.Bootstrap;
@@ -31,7 +30,7 @@ public class IntranetClient {
      * 通过外网ssh代理连接内网ssh服务的时候，会出现连接被重置的错误
      * 原因：在{@link com.swust.client.handler.ClientHandler#processData}获取外网数据包的时候，实际内网的代理客户端还未开启成功
      * 解决：1）和客户端的线程组分开使用，且将开启内网代理客户端的方法改为sync。2）若还想共用客户端的group，则必须在processData方法写数据之前
-     * 连接上内网代理客户端（可以在processData阻塞，知道内网代理开启成功）
+     * 连接上内网代理客户端（可以在processData阻塞，直到内网代理开启成功）
      *
      * @param host          内网代理客户端的host
      * @param port          内网代理客户端的port
@@ -59,7 +58,6 @@ public class IntranetClient {
             } else {
                 LogUtil.errorLog("Start client proxy fail，host:{} port:{}", host, port);
             }
-            ClientHandler.readyOpenClient.remove(channelId);
         });
         return this;
     }
