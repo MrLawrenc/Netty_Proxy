@@ -1,5 +1,6 @@
 package com.swust.client.handler;
 
+import com.alibaba.fastjson.JSON;
 import com.swust.client.ClientManager;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageHeader;
@@ -30,6 +31,7 @@ public class LocalProxyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        System.out.println("map:" + JSON.toJSONString(ClientManager.ID_SERVICE_CHANNEL_MAP));
         ClientManager.ID_SERVICE_CHANNEL_MAP.put(remoteChannelId, ctx);
     }
 

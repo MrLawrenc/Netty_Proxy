@@ -137,7 +137,7 @@ public class ClientHandler extends CommonHandler {
         int openTcpPort = receiveMessage.getHeader().getOpenTcpPort();
         int index = ports.indexOf(openTcpPort);
         try {
-            IntranetClient intranetClient = new IntranetClient().connect(channel.eventLoop(), proxyAddress.get(index)
+            IntranetClient intranetClient = new IntranetClient().connect( proxyAddress.get(index)
                     , proxyPort.get(index), ctx, channelId);
             ClientManager.add2ChannelMap(channel, intranetClient);
         } catch (Exception e) {
@@ -154,15 +154,28 @@ public class ClientHandler extends CommonHandler {
         }
     }
 
-    private void processData(Message message) {
+    private void processData(Message message) throws InterruptedException {
         String channelId = message.getHeader().getChannelId();
         ChannelHandlerContext context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
-        if (Objects.isNull(context)) {
+        int i = 1;
+        while (Objects.isNull(context)) {
+            if (i > 5) {
+                System.out.println(">5");
+                return;
+            }
+            LogUtil.errorLog("No proxy client was found by id!" + message.getHeader().getChannelId());
+            TimeUnit.MILLISECONDS.sleep(100 * i);
+            context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
+            i++;
+        }
+        LogUtil.errorLog("msg:{}", message.getHeader().toString());
+        context.writeAndFlush(message.getData());
+        /*if (Objects.isNull(context)) {
             LogUtil.errorLog("No proxy client was found by id!");
             LogUtil.errorLog("msg:{}", message.getHeader().toString());
         } else {
             context.writeAndFlush(message.getData());
-        }
+        }*/
     }
 
     /**
