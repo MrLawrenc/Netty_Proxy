@@ -2,11 +2,12 @@ package com.swust.client;
 
 import com.swust.common.config.LogUtil;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.*;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 
 /**
  * @author : LiuMing
@@ -21,7 +22,6 @@ public class TcpClient {
             Bootstrap b = new Bootstrap();
             b.group(WORKER_GROUP)
                     .channel(NioSocketChannel.class)
-                    .handler(new LoggingHandler(LogLevel.ERROR))
                     .option(ChannelOption.SO_KEEPALIVE, true)
                     .handler(channelInitializer);
 
@@ -30,13 +30,12 @@ public class TcpClient {
                 boolean success = future1.isSuccess();
                 if (success) {
                     LogUtil.infoLog("connect {} : {} success", host, port);
-                    //future1.channel().closeFuture().addListener((ChannelFutureListener) f -> WORKER_GROUP.shutdownGracefully());
                 } else {
                     LogUtil.errorLog("connect {} : {} fail", host, port);
                 }
             });
         } catch (Exception e) {
-            throw new RuntimeException("start client fail!");
+            throw new RuntimeException("start client fail!", e);
         }
     }
 }

@@ -91,7 +91,7 @@ public class ClientHandler extends CommonHandler {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         LogUtil.errorLog("Client trigger channelInactive,prepare to reconnect after closing the resource!");
-        ClientManager.clean();
+        ClientManager.reset();
 
         CompletableFuture.runAsync(() -> {
             int sleep = DEFAULT_TRY_SECONDS;
