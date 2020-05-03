@@ -14,10 +14,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -28,6 +25,11 @@ import java.util.stream.Collectors;
  * @description :   客户端 handler
  */
 public class ClientHandler extends CommonHandler {
+
+    /**
+     * 标记准备开启内网的客户端，防止在执行{@link #processData(Message)}方法时，内网代理客户端还未开启完毕，导致获取不到
+     */
+    public static List<String> readyOpenClient = Collections.synchronizedList(new ArrayList<>());
 
     private List<Integer> ports;
     private String password;
@@ -76,7 +78,7 @@ public class ClientHandler extends CommonHandler {
         } else if (type == MessageType.CONNECTED) {
             processConnected(ctx, message);
         } else if (type == MessageType.DATA) {
-            processData(message);
+            CompletableFuture.runAsync(() -> processData(message));
         } else if (type == MessageType.DISCONNECTED) {
             processDisconnected(ctx.channel(), message);
         } else {
@@ -137,9 +139,10 @@ public class ClientHandler extends CommonHandler {
         int openTcpPort = receiveMessage.getHeader().getOpenTcpPort();
         int index = ports.indexOf(openTcpPort);
         try {
-            IntranetClient intranetClient = new IntranetClient().connect( proxyAddress.get(index)
+            IntranetClient intranetClient = new IntranetClient().connect(proxyAddress.get(index)
                     , proxyPort.get(index), ctx, channelId);
             ClientManager.add2ChannelMap(channel, intranetClient);
+            readyOpenClient.add(channelId);
         } catch (Exception e) {
             e.printStackTrace();
             Message message = new Message();
@@ -154,28 +157,15 @@ public class ClientHandler extends CommonHandler {
         }
     }
 
-    private void processData(Message message) throws InterruptedException {
+    public void processData(Message message) {
         String channelId = message.getHeader().getChannelId();
         ChannelHandlerContext context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
-        int i = 1;
-        while (Objects.isNull(context)) {
-            if (i > 5) {
-                System.out.println(">5");
-                return;
-            }
-            LogUtil.errorLog("No proxy client was found by id!" + message.getHeader().getChannelId());
-            TimeUnit.MILLISECONDS.sleep(100 * i);
-            context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
-            i++;
-        }
-        LogUtil.errorLog("msg:{}", message.getHeader().toString());
-        context.writeAndFlush(message.getData());
-        /*if (Objects.isNull(context)) {
+        if (Objects.isNull(context)) {
             LogUtil.errorLog("No proxy client was found by id!");
             LogUtil.errorLog("msg:{}", message.getHeader().toString());
         } else {
             context.writeAndFlush(message.getData());
-        }*/
+        }
     }
 
     /**
