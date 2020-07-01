@@ -15,14 +15,14 @@ import java.io.LineNumberReader;
 /**
  * @author : LiuMing
  * @date : 2019/11/4 13:54
- * @description :   代理服务器的handler，当请求公网暴露的代理端口时，会转发到相应的客户端，
+ * 代理服务器的handler，当请求公网暴露的代理端口时，会转发到相应的客户端，
  * 为了能启用多客户端，禁止@ChannelHandler.Sharable注解
  */
 
 public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
-    private ChannelHandlerContext clientCtx;
-    private ExtranetServer proxyServer;
-    private int port;
+    private final ChannelHandlerContext clientCtx;
+    private final ExtranetServer proxyServer;
+    private final int port;
 
     public RemoteProxyHandler(ChannelHandlerContext clientCtx, ExtranetServer proxyServer, int port) {
         this.clientCtx = clientCtx;
