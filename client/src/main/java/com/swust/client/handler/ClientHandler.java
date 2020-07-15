@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 
 /**
  * @author : LiuMing
- *  2019/11/4 13:42
+ * 2019/11/4 13:42
  * 客户端 handler
  */
 @Slf4j
@@ -69,28 +69,29 @@ public class ClientHandler extends CommonHandler {
             throw new Exception("Unknown message type: " + msg.getClass().getName());
         }
 
-        poolExecutor.execute(() -> {
-            Message message = (Message) msg;
-            MessageType type = message.getHeader().getType();
-            if (type == MessageType.KEEPALIVE) {
-                return;
+
+        Message message = (Message) msg;
+        MessageType type = message.getHeader().getType();
+        if (type == MessageType.KEEPALIVE) {
+            return;
+        }
+        if (type == MessageType.REGISTER_RESULT) {
+            processRegisterResult(message);
+        } else if (type == MessageType.CONNECTED) {
+            processConnected(ctx, message);
+        } else if (type == MessageType.DATA) {
+            //fix 当数据包到来的时候  内网代理的连接可能还未建立完成
+            poolExecutor.execute(() -> processData(message));
+        } else if (type == MessageType.DISCONNECTED) {
+            try {
+                processDisconnected(ctx.channel(), message);
+            } catch (Exception exception) {
+                exception.printStackTrace();
             }
-            if (type == MessageType.REGISTER_RESULT) {
-                processRegisterResult(message);
-            } else if (type == MessageType.CONNECTED) {
-                processConnected(ctx, message);
-            } else if (type == MessageType.DATA) {
-                processData(message);
-            } else if (type == MessageType.DISCONNECTED) {
-                try {
-                    processDisconnected(ctx.channel(), message);
-                } catch (Exception exception) {
-                    exception.printStackTrace();
-                }
-            } else {
-                log.error("Unknown  msg:{}", message.toString());
-            }
-        });
+        } else {
+            log.error("Unknown  msg:{}", message.toString());
+        }
+
     }
 
 
@@ -167,8 +168,7 @@ public class ClientHandler extends CommonHandler {
         String channelId = message.getHeader().getChannelId();
         ChannelHandlerContext context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
         if (Objects.isNull(context)) {
-            log.error("No proxy client was found by id!");
-            log.error("msg:{}", message.getHeader().toString());
+            log.error("No proxy client was found by id : {}", channelId);
         } else {
             context.writeAndFlush(message.getData());
         }

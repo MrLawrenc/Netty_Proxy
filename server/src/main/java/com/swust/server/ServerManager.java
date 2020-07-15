@@ -59,7 +59,7 @@ public final class ServerManager {
         while (iterator.hasNext()) {
             ChannelHandlerContext current = iterator.next();
             if (current.channel().id().asLongText().equals(message.getHeader().getChannelId())) {
-                iterator.remove();
+                //iterator.remove();
                 return current;
             }
         }
