@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.swust.client.ClientMain;
 import com.swust.client.ClientManager;
 import com.swust.client.IntranetClient;
-import com.swust.common.config.LogUtil;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageHeader;
@@ -13,19 +12,24 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.List;
+import java.util.Objects;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 /**
  * @author : LiuMing
- * @date : 2019/11/4 13:42
- * @description :   客户端 handler
+ *  2019/11/4 13:42
+ * 客户端 handler
  */
+@Slf4j
 public class ClientHandler extends CommonHandler {
-
+    private final ExecutorService poolExecutor = new ThreadPoolExecutor(16, 64, 3, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(1024));
 
     private List<Integer> ports;
     private String password;
@@ -64,22 +68,29 @@ public class ClientHandler extends CommonHandler {
         if (!(msg instanceof Message)) {
             throw new Exception("Unknown message type: " + msg.getClass().getName());
         }
-        Message message = (Message) msg;
-        MessageType type = message.getHeader().getType();
-        if (type == MessageType.KEEPALIVE) {
-            return;
-        }
-        if (type == MessageType.REGISTER_RESULT) {
-            processRegisterResult(message);
-        } else if (type == MessageType.CONNECTED) {
-            processConnected(ctx, message);
-        } else if (type == MessageType.DATA) {
-            processData(message);
-        } else if (type == MessageType.DISCONNECTED) {
-            processDisconnected(ctx.channel(), message);
-        } else {
-            LogUtil.errorLog("Unknown  msg:{}", message.toString());
-        }
+
+        poolExecutor.execute(() -> {
+            Message message = (Message) msg;
+            MessageType type = message.getHeader().getType();
+            if (type == MessageType.KEEPALIVE) {
+                return;
+            }
+            if (type == MessageType.REGISTER_RESULT) {
+                processRegisterResult(message);
+            } else if (type == MessageType.CONNECTED) {
+                processConnected(ctx, message);
+            } else if (type == MessageType.DATA) {
+                processData(message);
+            } else if (type == MessageType.DISCONNECTED) {
+                try {
+                    processDisconnected(ctx.channel(), message);
+                } catch (Exception exception) {
+                    exception.printStackTrace();
+                }
+            } else {
+                log.error("Unknown  msg:{}", message.toString());
+            }
+        });
     }
 
 
@@ -88,7 +99,7 @@ public class ClientHandler extends CommonHandler {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        LogUtil.errorLog("Client trigger channelInactive,prepare to reconnect after closing the resource!");
+        log.error("Client trigger channelInactive,prepare to reconnect after closing the resource!");
         ClientManager.reset();
 
         CompletableFuture.runAsync(() -> {
@@ -98,16 +109,16 @@ public class ClientHandler extends CommonHandler {
                 try {
                     TimeUnit.SECONDS.sleep(sleep);
                     ClientMain.start();
-                    LogUtil.infoLog("Restart client success!");
+                    log.info("Restart client success!");
                     return;
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
                 sleep <<= 1;
                 count++;
-                LogUtil.warnLog("Restart client fail,This is the {} retry,will try again after {}s", count, sleep);
+                log.warn("Restart client fail,This is the {} retry,will try again after {}s", count, sleep);
             }
-            LogUtil.errorLog("The maximum number of retries reached,will exit");
+            log.error("The maximum number of retries reached,will exit");
             System.exit(0);
         });
     }
@@ -117,9 +128,9 @@ public class ClientHandler extends CommonHandler {
      */
     private void processRegisterResult(Message message) {
         if (message.getHeader().isSuccess()) {
-            LogUtil.infoLog("The proxy server started successfully,server msg:{}", message.getHeader().getDescription());
+            log.info("The proxy server started successfully,server msg:{}", message.getHeader().getDescription());
         } else {
-            LogUtil.errorLog("The proxy server failed to open,server msg:{}", message.getHeader().getDescription());
+            log.error("The proxy server failed to open,server msg:{}", message.getHeader().getDescription());
             System.exit(0);
         }
     }
@@ -143,7 +154,7 @@ public class ClientHandler extends CommonHandler {
             Message message = new Message();
             MessageHeader header = message.getHeader();
             if (index == -1) {
-                LogUtil.errorLog("Client ports config:{}  current open tcp port:{}", JSON.toJSONString(ports), openTcpPort);
+                log.error("Client ports config:{}  current open tcp port:{}", JSON.toJSONString(ports), openTcpPort);
                 header.setDescription("Current msg port is null!");
             }
             header.setType(MessageType.DISCONNECTED);
@@ -156,8 +167,8 @@ public class ClientHandler extends CommonHandler {
         String channelId = message.getHeader().getChannelId();
         ChannelHandlerContext context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
         if (Objects.isNull(context)) {
-            LogUtil.errorLog("No proxy client was found by id!");
-            LogUtil.errorLog("msg:{}", message.getHeader().toString());
+            log.error("No proxy client was found by id!");
+            log.error("msg:{}", message.getHeader().toString());
         } else {
             context.writeAndFlush(message.getData());
         }
@@ -185,7 +196,7 @@ public class ClientHandler extends CommonHandler {
                 try {
                     // localProxyHandler.getCtx().writeAndFlush("heart pkg");
                 } catch (Exception e) {
-                    LogUtil.warnLog("time  warning ..................");
+                    log.warn("time  warning ..................");
                 }
             }
         }, 1000 * 60 * 60 * 6, 1000 * 60 * 60 * 6);

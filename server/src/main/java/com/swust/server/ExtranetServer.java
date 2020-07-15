@@ -71,7 +71,7 @@ public class ExtranetServer {
         @Override
         protected void initChannel(SocketChannel ch) throws Exception {
             ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder());
-            ch.pipeline().addLast("remoteHandler", new RemoteProxyHandler(clientCtx, proxyServer, port));
+            ch.pipeline().addLast(ServerMain.businessExecutor, "remoteHandler", new RemoteProxyHandler(clientCtx, proxyServer, port));
         }
     }
 }

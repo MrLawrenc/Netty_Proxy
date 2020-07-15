@@ -9,6 +9,7 @@ import com.swust.common.constant.Constant;
 import com.swust.server.handler.TcpServerHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import org.apache.commons.cli.*;
@@ -22,6 +23,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class ServerMain {
     private static Channel serverChannel;
+
+    public static NioEventLoopGroup businessExecutor = new NioEventLoopGroup(20);
 
     /**
      * Apache Commons CLI是开源的命令行解析工具，它可以帮助开发者快速构建启动命令，并且帮助你组织命令的参数、以及输出列表等。
@@ -81,8 +84,9 @@ public class ServerMain {
                 TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
                 //int为4字节，定义的长度字段(长度字段+消息体)
                 ch.pipeline().addLast(new MessageDecoder(), new MessageEncoder(),
-                        new IdleStateHandler(60, 20, 0, TimeUnit.SECONDS),
-                        tcpServerHandler);
+                        new IdleStateHandler(60, 20, 0, TimeUnit.SECONDS));
+
+                ch.pipeline().addLast(businessExecutor, tcpServerHandler);
             }
         });
         LogUtil.infoLog("Server start success on port:{}", port);

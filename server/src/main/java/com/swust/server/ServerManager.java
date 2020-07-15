@@ -23,7 +23,7 @@ public final class ServerManager {
     /**
      * 与当前外网代理服务端连接的用户客户端channel，使用其channel id作为msg的头信息进行传递
      */
-    public static final List<ChannelHandlerContext> USER_CLIENT_CHANNEL = Collections.synchronizedList(new ArrayList<>());
+    private static final List<ChannelHandlerContext> USER_CLIENT_CHANNEL = Collections.synchronizedList(new ArrayList<>());
 
     /**
      * key 为内网客户端
@@ -31,6 +31,10 @@ public final class ServerManager {
      */
     public static final ConcurrentHashMap<Channel, List<ExtranetServer>> CHANNEL_MAP = new ConcurrentHashMap<>();
 
+
+    public static synchronized List<ChannelHandlerContext> getUserClientChannel() {
+        return USER_CLIENT_CHANNEL;
+    }
 
     /**
      * 将代理服务端绑定到当前客户端
@@ -47,10 +51,19 @@ public final class ServerManager {
 
     /**
      * 根据msg的头id，查找到对应的channel
+     * <p>
+     * 2020-07-15 压测会出现 ConcurrentModificationException ,改为迭代器模式 且加锁
      */
-    public static ChannelHandlerContext findChannelByMsg(Message message) {
-        return USER_CLIENT_CHANNEL.stream().filter(channel -> channel.channel().id().asLongText().equals(message.getHeader().getChannelId()))
-                .findAny().orElse(null);
+    public static synchronized ChannelHandlerContext findChannelByMsg(Message message) {
+        Iterator<ChannelHandlerContext> iterator = USER_CLIENT_CHANNEL.iterator();
+        while (iterator.hasNext()) {
+            ChannelHandlerContext current = iterator.next();
+            if (current.channel().id().asLongText().equals(message.getHeader().getChannelId())) {
+                iterator.remove();
+                return current;
+            }
+        }
+        return null;
     }
 
 

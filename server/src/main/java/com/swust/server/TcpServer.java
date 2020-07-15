@@ -1,6 +1,5 @@
 package com.swust.server;
 
-import com.swust.common.config.LogUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -8,30 +7,32 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author : LiuMing
- * @date : 2019/11/4 10:37
- * @description :   Tcp服务端
+ * 2019/11/4 10:37
+ * Tcp服务端
  */
 @Getter
+@Slf4j
 public class TcpServer {
 
     public Channel initTcpServer(int port, ChannelInitializer<?> channelInitializer) throws Exception {
-        ServerBootstrap b = new ServerBootstrap();
+        ServerBootstrap bootstrap = new ServerBootstrap();
         NioEventLoopGroup boss = new NioEventLoopGroup(1);
-        NioEventLoopGroup work = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors());
-        b.group(boss, work)
+        NioEventLoopGroup work = new NioEventLoopGroup();
+        bootstrap.group(boss, work)
                 .channel(NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.TRACE))
                 .childHandler(channelInitializer)
                 .childOption(ChannelOption.SO_KEEPALIVE, true);
-        ChannelFuture future = b.bind(port).sync();
+        ChannelFuture future = bootstrap.bind(port).sync();
         future.addListener(fu -> {
             if (fu.isSuccess()) {
-                LogUtil.warnLog("Server start success!");
+                log.info("Server  started on port {}!", port);
             } else {
-                LogUtil.warnLog("Server start fail! will close current service!");
+                log.error("Server start fail! will close current service!");
                 System.exit(0);
             }
         });

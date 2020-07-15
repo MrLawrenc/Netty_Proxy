@@ -9,8 +9,8 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 
 /**
  * @author : LiuMing
- * @date : 2019/11/4 14:05
- * @description :   外部请求到公网服务器，公网服务器将请求转发到当前服务器，当前服务器建立客户端，访问本地服务
+ * 2019/11/4 14:05
+ * 外部请求到公网服务器，公网服务器将请求转发到当前服务器，当前服务器建立客户端，访问本地服务
  */
 public class LocalProxyHandler extends ChannelInboundHandlerAdapter {
 

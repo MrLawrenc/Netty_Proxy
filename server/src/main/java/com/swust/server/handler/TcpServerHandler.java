@@ -1,7 +1,6 @@
 package com.swust.server.handler;
 
 import com.alibaba.fastjson.JSON;
-import com.swust.common.config.LogUtil;
 import com.swust.common.exception.ServerException;
 import com.swust.common.handler.CommonHandler;
 import com.swust.common.protocol.Message;
@@ -12,21 +11,25 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.*;
 
 /**
  * @author : LiuMing
- * @date : 2019/11/4 10:50
- * @description :   tcp handler
+ * 2019/11/4 10:50
+ * tcp handler
  */
+@Slf4j
 public class TcpServerHandler extends CommonHandler {
     private String password;
 
-
+    private final ExecutorService poolExecutor = new ThreadPoolExecutor(16, 64, 3, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(1024));
     /**
      * 默认读超时上限
      */
@@ -43,23 +46,29 @@ public class TcpServerHandler extends CommonHandler {
         if (!(msg instanceof Message)) {
             throw new Exception("Unknown message,msg type: " + msg.getClass().getName());
         }
-        Message message = (Message) msg;
-        MessageType type = message.getHeader().getType();
-        //客户端注册
-        if (type == MessageType.REGISTER) {
-            processRegister(ctx, message);
-        } else {
-            if (type == MessageType.DISCONNECTED) {
-                processDisconnected(message);
-            } else if (type == MessageType.DATA) {
-                processData(message);
-            } else if (type == MessageType.KEEPALIVE) {
-                // 心跳包
-                DEFAULT_COUNT.put(ctx, 0);
+        poolExecutor.submit(() -> {
+            Message message = (Message) msg;
+            MessageType type = message.getHeader().getType();
+            //客户端注册
+            if (type == MessageType.REGISTER) {
+                processRegister(ctx, message);
             } else {
-                throw new ServerException("Unknown type: " + type);
+                if (type == MessageType.DISCONNECTED) {
+                    try {
+                        processDisconnected(message);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                } else if (type == MessageType.DATA) {
+                    processData(message);
+                } else if (type == MessageType.KEEPALIVE) {
+                    // 心跳包
+                    DEFAULT_COUNT.put(ctx, 0);
+                } else {
+                    throw new ServerException("Unknown type: " + type);
+                }
             }
-        }
+        });
     }
 
 
@@ -80,23 +89,23 @@ public class TcpServerHandler extends CommonHandler {
         int port = message.getHeader().getOpenTcpPort();
         ExtranetServer result = ServerManager.hasServer4ChannelMap(channel, port);
         if (result != null) {
-            LogUtil.warnLog("The current proxy({}) server already exists!", port);
-            LogUtil.warnLog("The current proxy server already exists and this proxy request is ignored!");
+            log.warn("The current proxy({}) server already exists!", port);
+            log.warn("The current proxy server already exists and this proxy request is ignored!");
             if (result.getChannel().isActive()) {
-                LogUtil.warnLog("The current proxy server already exists and this proxy request is ignored!");
+                log.warn("The current proxy server already exists and this proxy request is ignored!");
                 return;
             }
             result.getChannel().close();
-            LogUtil.warnLog("The current proxy server is deactivated and is about to restart!");
+            log.warn("The current proxy server is deactivated and is about to restart!");
         } else {
             ExtranetServer old = ServerManager.PORT_MAP.get(port);
             if (Objects.isNull(old)) {
-                LogUtil.infoLog("There is no proxy server bound to the current client. A new proxy is about to be opened!");
-                LogUtil.infoLog("msg:{}", JSON.toJSONString(message));
+                log.info("There is no proxy server bound to the current client. A new proxy is about to be opened!");
+                log.info("msg:{}", JSON.toJSONString(message));
                 needRegister = true;
             } else {
-                LogUtil.infoLog("There is no proxy server bound to the current client,but a proxy server with the port({}) open is bound directly", port);
-                LogUtil.infoLog("msg:{}", JSON.toJSONString(message));
+                log.info("There is no proxy server bound to the current client,but a proxy server with the port({}) open is bound directly", port);
+                log.info("msg:{}", JSON.toJSONString(message));
                 old.getInitializer().setClientCtx(ctx);
                 ServerManager.add2ChannelMap(channel, old);
             }
@@ -110,7 +119,7 @@ public class TcpServerHandler extends CommonHandler {
                 message.getHeader().setSuccess(true).setDescription("Server already start port on " + port);
             } catch (Exception e) {
                 e.printStackTrace();
-                LogUtil.errorLog("Register fail, msg:{} port: ", message, port);
+                log.error("Register fail, msg:{} port: {}", message, port);
                 return;
             }
         } else {
@@ -126,8 +135,7 @@ public class TcpServerHandler extends CommonHandler {
     private void processData(Message message) {
         ChannelHandlerContext userCtx = ServerManager.findChannelByMsg(message);
         if (Objects.isNull(userCtx)) {
-            LogUtil.errorLog("Received Intranet proxy client message，but the corresponding proxy server was not found! ");
-            LogUtil.errorLog("msg:{}", message.getHeader().toString());
+            log.error("Received Intranet proxy client message，but the corresponding proxy server was not found! ");
         } else {
             userCtx.writeAndFlush(message.getData());
         }
@@ -139,7 +147,7 @@ public class TcpServerHandler extends CommonHandler {
     private void processDisconnected(Message message) throws InterruptedException {
         ChannelHandlerContext userCtx = ServerManager.findChannelByMsg(message);
         if (Objects.isNull(userCtx)) {
-            LogUtil.warnLog("Received the message of disconnection of the internal network client, " +
+            log.warn("Received the message of disconnection of the internal network client, " +
                     "but did not find  user client, may have closed!");
         } else {
             userCtx.close();
@@ -151,12 +159,12 @@ public class TcpServerHandler extends CommonHandler {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        LogUtil.errorLog("The client is disconnected");
+        log.error("The client is disconnected");
         List<ExtranetServer> servers = ServerManager.CHANNEL_MAP.get(ctx.channel());
         if (Objects.isNull(servers) || servers.size() == 0) {
-            LogUtil.errorLog("The proxy server opened based on the client was not found!");
+            log.error("The proxy server opened based on the client was not found!");
         } else {
-            LogUtil.infoLog("Disconnect all proxy servers that are opened according to the client!");
+            log.info("Disconnect all proxy servers that are opened according to the client!");
             servers.forEach(server -> server.getGroup().close());
         }
     }
@@ -173,7 +181,7 @@ public class TcpServerHandler extends CommonHandler {
                 DEFAULT_COUNT.put(ctx, count++);
                 if (count > DEFAULT_RECONNECTION_LIMIT) {
                     DEFAULT_COUNT.remove(ctx);
-                    LogUtil.errorLog("Read idle  will loss connection. retryNum:{}", count);
+                    log.error("Read idle  will loss connection. retryNum:{}", count);
                     ctx.close();
                 }
             }
