@@ -18,8 +18,8 @@ import lombok.Setter;
 
 /**
  * @author : LiuMing
- * @date : 2019/11/4 10:37
- * @description :   外网代理
+ * 2019/11/4 10:37
+ * 外网代理
  */
 @Data
 public class ExtranetServer {

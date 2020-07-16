@@ -14,7 +14,7 @@ import java.io.LineNumberReader;
 
 /**
  * @author : LiuMing
- * @date : 2019/11/4 13:54
+ * 2019/11/4 13:54
  * 代理服务器的handler，当请求公网暴露的代理端口时，会转发到相应的客户端，
  * 为了能启用多客户端，禁止@ChannelHandler.Sharable注解
  */

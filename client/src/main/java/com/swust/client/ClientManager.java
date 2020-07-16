@@ -11,10 +11,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author : hz20035009-逍遥
- * @date : 2020/4/20 13:42
- * @description : TODO
+ * 2020/4/20 13:42
  */
 public class ClientManager {
+
+
+    /**
+     * 锁集合，主要防止代理服务在高并发环境下出现内网代理客户端还未连接上，但是外网数据包已经到了，这时会出现匹配不到对应得内网客户端
+     */
+    public static final Map<String, Object> MONITOR_MAP = new ConcurrentHashMap<>();
+
     /**
      * key 与外网代理服务端连接的channelid
      * value 连接到内网开启的服务端的客户端channel
@@ -27,6 +33,28 @@ public class ClientManager {
      */
     public static final ConcurrentHashMap<Channel, List<IntranetClient>> CHANNEL_MAP = new ConcurrentHashMap<>();
 
+
+    public static void lock(String channelId) {
+        Object monitor = new Object();
+        MONITOR_MAP.put(channelId, monitor);
+        synchronized (monitor) {
+            try {
+                monitor.wait(1000);
+            } catch (InterruptedException e) {
+            }
+        }
+    }
+
+    public static void unlock(String channelId) {
+        Object monitor = MONITOR_MAP.get(channelId);
+        if (Objects.isNull(monitor)) {
+            return;
+        }
+        synchronized (monitor) {
+            monitor.notify();
+        }
+        MONITOR_MAP.remove(channelId);
+    }
 
     public static void add2ChannelMap(Channel key, IntranetClient target) {
         List<IntranetClient> channels = CHANNEL_MAP.get(key);

@@ -146,10 +146,8 @@ public class TcpServerHandler extends CommonHandler {
      */
     private void processDisconnected(Message message) throws InterruptedException {
         ChannelHandlerContext userCtx = ServerManager.findChannelByMsg(message);
-        if (Objects.isNull(userCtx)) {
-            log.warn("Received the message of disconnection of the internal network client, " +
-                    "but did not find  user client, may have closed!");
-        } else {
+        if (Objects.nonNull(userCtx)) {
+            log.warn("Received the message of disconnection of the internal network client ");
             userCtx.close();
         }
     }
