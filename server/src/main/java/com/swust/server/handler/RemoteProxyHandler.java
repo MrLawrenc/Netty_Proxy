@@ -35,14 +35,14 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
      */
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
-        ServerManager.getUserClientChannel().add(ctx);
+        String channelId = ctx.channel().id().asLongText();
+        ServerManager.USER_CLIENT_MAP.put(channelId, ctx);
         Message message = new Message();
         MessageHeader header = message.getHeader();
         header.setType(MessageType.CONNECTED);
         header.setOpenTcpPort(port);
-        header.setChannelId(ctx.channel().id().asLongText());
+        header.setChannelId(channelId);
         clientCtx.writeAndFlush(message);
-
         proxyServer.getGroup().add(ctx.channel());
     }
 
@@ -60,7 +60,8 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        ServerManager.getUserClientChannel().remove(ctx);
+        // System.out.println("server rm id:"+ctx.channel().id().asLongText());
+        //ServerManager.USER_CLIENT_MAP.remove(ctx.channel().id().asLongText());
         proxyServer.getGroup().remove(ctx.channel());
 
         Message message = new Message();

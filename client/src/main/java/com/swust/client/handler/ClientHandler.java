@@ -168,12 +168,15 @@ public class ClientHandler extends CommonHandler {
         String channelId = message.getHeader().getChannelId();
         ChannelHandlerContext context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
         if (Objects.isNull(context)) {
+            log.info("===============================================" );
             //fix 加锁，可能代理客户端还未连接上就收到了数据包
+            long l = System.currentTimeMillis();
             ClientManager.lock(channelId);
             ChannelHandlerContext newObj = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
             if (Objects.isNull(newObj)) {
                 log.error("No proxy client was found by id : {}", channelId);
             } else {
+                log.info("超时:" + (System.currentTimeMillis() - l) + "ms");
                 newObj.writeAndFlush(message.getData());
             }
         } else {

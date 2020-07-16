@@ -54,7 +54,7 @@ public class IntranetClient {
         this.channel = future.channel();
         future.addListener(f -> {
             if (f.isSuccess()) {
-                LogUtil.infoLog("Start client proxy success，host:{} port:{}", host, port);
+               // LogUtil.infoLog("Start client proxy success，host:{} port:{}", host, port);
             } else {
                 LogUtil.errorLog("Start client proxy fail，host:{} port:{}", host, port);
             }

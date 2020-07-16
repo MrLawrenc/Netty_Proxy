@@ -28,8 +28,9 @@ import java.util.concurrent.*;
 public class TcpServerHandler extends CommonHandler {
     private String password;
 
-    private final ExecutorService poolExecutor = new ThreadPoolExecutor(16, 64, 3, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(1024));
+    private final static int processorNum = Runtime.getRuntime().availableProcessors();
+    private final ExecutorService poolExecutor = new ThreadPoolExecutor(processorNum << 1, processorNum << 4, 1, TimeUnit.MINUTES,
+            new ArrayBlockingQueue<>(Integer.MAX_VALUE >> 2));
     /**
      * 默认读超时上限
      */
@@ -133,8 +134,9 @@ public class TcpServerHandler extends CommonHandler {
      * 处理收到转发的内网响应数据包
      */
     private void processData(Message message) {
-        ChannelHandlerContext userCtx = ServerManager.findChannelByMsg(message);
+        ChannelHandlerContext userCtx = ServerManager.USER_CLIENT_MAP.get(message.getHeader().getChannelId());
         if (Objects.isNull(userCtx)) {
+            System.out.println(message.getHeader() + "  " + message.getData().length);
             log.error("Received Intranet proxy client message，but the corresponding proxy server was not found! ");
         } else {
             userCtx.writeAndFlush(message.getData());
@@ -145,9 +147,9 @@ public class TcpServerHandler extends CommonHandler {
      * 断开,先关闭外网暴露的代理，在关闭连接的客户端
      */
     private void processDisconnected(Message message) throws InterruptedException {
-        ChannelHandlerContext userCtx = ServerManager.findChannelByMsg(message);
+        ChannelHandlerContext userCtx = ServerManager.USER_CLIENT_MAP.get(message.getHeader().getChannelId());
         if (Objects.nonNull(userCtx)) {
-            log.warn("Received the message of disconnection of the internal network client ");
+            //log.warn("Received the message of disconnection of the internal network client ");
             userCtx.close();
         }
     }

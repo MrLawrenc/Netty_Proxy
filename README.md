@@ -1,3 +1,12 @@
+# Jmeter生成性能测试报告
+- 使用创建好的jmx文件
+- 进入jmeter bin目录
+- 执行
+```cmd
+jmeter -n -t F:\JavaProject\Netty_Proxy\Netty_Proxy.jmx  -l test.jtl -e -o ./netty_proxy
+```
+- 最终会使用Netty_Proxy.jmx生成test.jtl源文件，再根据源文件在./netty_proxy目录下生成可视化的测试报告，打开index.html即可
+
 # Netty_Proxy
 
 - 当前2.0.0版本更新如下

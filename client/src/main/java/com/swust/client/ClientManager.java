@@ -39,8 +39,9 @@ public class ClientManager {
         MONITOR_MAP.put(channelId, monitor);
         synchronized (monitor) {
             try {
-                monitor.wait(1000);
+                monitor.wait(2000);
             } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
