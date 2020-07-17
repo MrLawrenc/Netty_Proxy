@@ -1,6 +1,6 @@
 package com.swust.client;
 
-import com.swust.common.config.LogUtil;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -8,19 +8,23 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author : LiuMing
- * @date : 2019/11/4 20:00
- * @description :   tcp连接
+ * 2019/11/4 20:00
+ * tcp连接
  */
+@Slf4j
 public class TcpClient {
-    private static final NioEventLoopGroup WORKER_GROUP = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() * 2);
 
     public static void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws RuntimeException {
+        Bootstrap b = new Bootstrap();
+        System.out.println("Runtime.getRuntime().availableProcessors():"+Runtime.getRuntime().availableProcessors());
+        NioEventLoopGroup work = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors(),
+                new ThreadFactoryBuilder().setNameFormat("netty-client-%d").build());
         try {
-            Bootstrap b = new Bootstrap();
-            b.group(WORKER_GROUP)
+            b.group(work)
                     .channel(NioSocketChannel.class)
                     .option(ChannelOption.SO_KEEPALIVE, true)
                     .handler(channelInitializer);
@@ -29,12 +33,15 @@ public class TcpClient {
             future.addListener((ChannelFutureListener) future1 -> {
                 boolean success = future1.isSuccess();
                 if (success) {
-                    LogUtil.infoLog("connect {} : {} success", host, port);
+                    log.info("connect {} : {} success", host, port);
                 } else {
-                    LogUtil.errorLog("connect {} : {} fail", host, port);
+                    log.error("connect {} : {} fail", host, port);
                 }
             });
+
+            future.channel().closeFuture().addListener(f -> work.shutdownGracefully());
         } catch (Exception e) {
+            work.shutdownGracefully();
             throw new RuntimeException("start client fail!", e);
         }
     }

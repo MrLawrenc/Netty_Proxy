@@ -30,7 +30,7 @@ public class TcpServerHandler extends CommonHandler {
 
     private final static int processorNum = Runtime.getRuntime().availableProcessors();
     private final ExecutorService poolExecutor = new ThreadPoolExecutor(processorNum << 1, processorNum << 4, 1, TimeUnit.MINUTES,
-            new ArrayBlockingQueue<>(Integer.MAX_VALUE >> 2));
+            new ArrayBlockingQueue<>(Integer.MAX_VALUE >>4));
     /**
      * 默认读超时上限
      */

@@ -1,6 +1,7 @@
 package com.swust.client.handler;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.swust.client.ClientMain;
 import com.swust.client.ClientManager;
 import com.swust.client.IntranetClient;
@@ -28,8 +29,11 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class ClientHandler extends CommonHandler {
-    private final ExecutorService poolExecutor = new ThreadPoolExecutor(16, 64, 3, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(1024));
+    private final ExecutorService poolExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() << 2, 3, TimeUnit.MINUTES,
+            new ArrayBlockingQueue<>(Integer.MAX_VALUE >> 4),new ThreadFactoryBuilder().setNameFormat("send-data-%d").build());
+
+    private final ExecutorService connectPool = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() << 2, 3, TimeUnit.MINUTES,
+            new ArrayBlockingQueue<>(Integer.MAX_VALUE >> 4),new ThreadFactoryBuilder().setNameFormat("create-conn-%d").build());
 
     private List<Integer> ports;
     private String password;
@@ -66,7 +70,7 @@ public class ClientHandler extends CommonHandler {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws java.lang.Exception {
         if (!(msg instanceof Message)) {
-            throw new Exception("Unknown message type: " + msg.getClass().getName());
+            throw new Exception("unknown message type: " + msg.getClass().getName());
         }
 
 
@@ -78,18 +82,15 @@ public class ClientHandler extends CommonHandler {
         if (type == MessageType.REGISTER_RESULT) {
             processRegisterResult(message);
         } else if (type == MessageType.CONNECTED) {
+            //connectPool.execute(() -> processConnected(ctx, message));
             processConnected(ctx, message);
         } else if (type == MessageType.DATA) {
-            //fix 当数据包到来的时候  内网代理的连接可能还未建立完成
-            poolExecutor.execute(() -> processData(message));
+            //poolExecutor.execute(() -> processData(message));
+            processData(message);
         } else if (type == MessageType.DISCONNECTED) {
-            try {
-                processDisconnected(ctx.channel(), message);
-            } catch (Exception exception) {
-                exception.printStackTrace();
-            }
+            processDisconnected(ctx.channel(), message);
         } else {
-            log.error("Unknown  msg:{}", message.toString());
+            log.error("unknown  msg:{}", message.toString());
         }
 
     }
@@ -100,7 +101,7 @@ public class ClientHandler extends CommonHandler {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        log.error("Client trigger channelInactive,prepare to reconnect after closing the resource!");
+        log.error("client trigger channelInactive,prepare to reconnect after closing the resource!");
         ClientManager.reset();
 
         CompletableFuture.runAsync(() -> {
@@ -168,15 +169,15 @@ public class ClientHandler extends CommonHandler {
         String channelId = message.getHeader().getChannelId();
         ChannelHandlerContext context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
         if (Objects.isNull(context)) {
-            log.info("===============================================" );
+            log.info("===================等待代理客户端建立连接============================");
             //fix 加锁，可能代理客户端还未连接上就收到了数据包
             long l = System.currentTimeMillis();
             ClientManager.lock(channelId);
             ChannelHandlerContext newObj = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
             if (Objects.isNull(newObj)) {
                 log.error("No proxy client was found by id : {}", channelId);
+                log.info("超时:{},仍未等到代理客户端成功建立连接:", (System.currentTimeMillis() - l) + "ms");
             } else {
-                log.info("超时:" + (System.currentTimeMillis() - l) + "ms");
                 newObj.writeAndFlush(message.getData());
             }
         } else {
@@ -187,7 +188,7 @@ public class ClientHandler extends CommonHandler {
     /**
      * 与代理服务端连接的用户客户端断开连接，处理资源，以及断开内网代理客户端
      */
-    private void processDisconnected(Channel channel, Message message) throws Exception {
+    private void processDisconnected(Channel channel, Message message) {
         ChannelHandlerContext context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(message.getHeader().getChannelId());
         if (Objects.nonNull(context)) {
             context.close();

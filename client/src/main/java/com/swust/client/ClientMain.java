@@ -1,18 +1,20 @@
 package com.swust.client;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.swust.client.handler.ClientHandler;
 import com.swust.common.cmd.CmdOptions;
 import com.swust.common.codec.MessageDecoder;
 import com.swust.common.codec.MessageEncoder;
-import com.swust.common.config.LogUtil;
 import com.swust.common.constant.Constant;
 import com.swust.common.entity.ClientConfig;
 import com.swust.common.entity.ConfigBuilder;
 import com.swust.common.util.CommandUtil;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.internal.StringUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -26,11 +28,19 @@ import org.apache.commons.cli.Options;
  * 单机 -h localhost -p 9000 -password 123lmy -proxy_h localhost -proxy_p 880 -remote_p 11000
  * 多个 -profile F:\JavaProject\Netty_Proxy\client.pro
  */
+@Slf4j
 public class ClientMain {
     private static ClientConfig clientConfig;
+    public static  NioEventLoopGroup WORK;
 
 
     public static void main(String[] args) throws Exception {
+        WORK= new NioEventLoopGroup(40,
+                new ThreadFactoryBuilder().setNameFormat("netty-proxy-client-%d").build());
+        WORK.forEach(e->e.execute(()->{
+            System.out.println("thread "+Thread.currentThread().getName()+" 就绪");
+        }));
+
         Options options = new Options();
 
         CommandUtil.addClientOptions(options);
@@ -43,36 +53,36 @@ public class ClientMain {
         }
         String profile = cmd.getOptionValue(CmdOptions.PROFILE.getOpt());
         if (!StringUtil.isNullOrEmpty(profile)) {
-            LogUtil.infoLog("start read profile info");
+            log.info("start read profile info");
             clientConfig = CommandUtil.clientConfigByProperties(profile);
         } else {
             //opt和longOpt都可以拿到命令对应的值
             String serverAddress = cmd.getOptionValue(CmdOptions.HOST.getOpt());
             if (serverAddress == null) {
-                LogUtil.errorLog("server_addr cannot be null");
+                log.error("server_addr cannot be null");
                 return;
             }
             String serverPort = cmd.getOptionValue(CmdOptions.PORT.getOpt());
             if (serverPort == null) {
-                LogUtil.errorLog("server_port cannot be null");
+                log.error("server_port cannot be null");
                 return;
             }
             String password = cmd.getOptionValue(CmdOptions.PASSWORD.getOpt());
             String proxyAddress = cmd.getOptionValue(CmdOptions.PROXY_HOST.getOpt());
             if (proxyAddress == null) {
-                LogUtil.errorLog("proxy_addr cannot be null");
+                log.error("proxy_addr cannot be null");
                 return;
             }
 
             String proxyPort = cmd.getOptionValue(CmdOptions.PROXY_PORT.getOpt());
             if (proxyPort == null) {
-                LogUtil.errorLog("proxy_port cannot be null");
+                log.error("proxy_port cannot be null");
                 return;
             }
 
             String remotePort = cmd.getOptionValue(CmdOptions.REMOTE_PORT.getOpt());
             if (remotePort == null) {
-                LogUtil.errorLog("remote_port cannot be null");
+                log.error("remote_port cannot be null");
                 return;
             }
             clientConfig = ConfigBuilder.buildClient(password, serverPort, serverAddress, CommandUtil.parseArray(proxyAddress)
@@ -88,8 +98,7 @@ public class ClientMain {
             public void initChannel(SocketChannel ch) {
                 ClientHandler clientHandler = new ClientHandler(clientConfig.getRemotePort(), clientConfig.getServerPassword(),
                         clientConfig.getProxyHost(), clientConfig.getProxyPort());
-                ch.pipeline().addLast(
-                        new MessageDecoder(), new MessageEncoder(),
+                ch.pipeline().addLast(new MessageDecoder(), new MessageEncoder(),
                         new IdleStateHandler(60, 20, 0), clientHandler);
             }
         });

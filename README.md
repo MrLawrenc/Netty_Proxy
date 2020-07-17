@@ -19,6 +19,8 @@ jmeter -n -t F:\JavaProject\Netty_Proxy\Netty_Proxy.jmx  -l test.jtl -e -o ./net
     ``` 
     - 循环4次 每次50个请求  在客户端会发现激活的客户端大于200，可能是由于服务器端的负载过高以及网络带宽占满等因素导致响应延迟加长，
     而Jmeter默认没有timout等待，导致出错。解决方案:
+    
+  - 务必勾选长连接
 # Netty_Proxy
 
 - 当前2.0.0版本更新如下
