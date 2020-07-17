@@ -1,30 +1,42 @@
 package com.swust.server;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.swust.common.cmd.CmdOptions;
 import com.swust.common.codec.MessageDecoder;
 import com.swust.common.codec.MessageEncoder;
 import com.swust.common.config.LogFormatter;
-import com.swust.common.config.LogUtil;
 import com.swust.common.constant.Constant;
 import com.swust.server.handler.TcpServerHandler;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelInitializer;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.*;
 
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * @author : LiuMing
- * @date : 2019/11/4 9:46
- * @description :   服务端
+ * 2019/11/4 9:46
+ * 服务端
  */
+@Slf4j
 public class ServerMain {
-    private static Channel serverChannel;
 
-    public static NioEventLoopGroup businessExecutor = new NioEventLoopGroup(20);
+    public static final int PROCESSOR = Runtime.getRuntime().availableProcessors();
+    private static final Executor EXECUTOR = new ThreadPoolExecutor(PROCESSOR,
+            PROCESSOR << 1, 1, TimeUnit.MINUTES,
+            new ArrayBlockingQueue<>(1024),
+            new ThreadFactoryBuilder().setNameFormat("server-business-%d").build(),
+            new ThreadPoolExecutor.AbortPolicy());
+
+    //public static NioEventLoopGroup businessExecutor = new NioEventLoopGroup(PROCESSOR, EXECUTOR);
+    public static NioEventLoopGroup businessExecutor = new NioEventLoopGroup(PROCESSOR,  new ThreadFactoryBuilder().setNameFormat("server-business-%d").build());
 
     /**
      * Apache Commons CLI是开源的命令行解析工具，它可以帮助开发者快速构建启动命令，并且帮助你组织命令的参数、以及输出列表等。
@@ -78,7 +90,7 @@ public class ServerMain {
 
 
     private static void start(int port, String password) throws Exception {
-        serverChannel = new TcpServer().initTcpServer(port, new ChannelInitializer<SocketChannel>() {
+        initTcpServer(port, new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
                 TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
@@ -89,13 +101,30 @@ public class ServerMain {
                 ch.pipeline().addLast(businessExecutor, tcpServerHandler);
             }
         });
-        LogUtil.infoLog("Server start success on port:{}", port);
     }
 
-    /**
-     * 获取服务端channel，该channel永远存在，不会被主动关闭
-     */
-    public static Channel getServerChannel() {
-        return serverChannel;
+    private static void initTcpServer(int port, ChannelInitializer<?> channelInitializer) throws Exception {
+        ServerBootstrap bootstrap = new ServerBootstrap();
+        NioEventLoopGroup work = new NioEventLoopGroup(12,new ThreadFactoryBuilder().setNameFormat("server-boss111-%d").build());
+        bootstrap.group(ServerManager.PROXY_BOSS_GROUP, work)
+                .channel(NioServerSocketChannel.class)
+                .handler(new LoggingHandler(LogLevel.TRACE))
+                .childHandler(channelInitializer)
+                .childOption(ChannelOption.SO_KEEPALIVE, true);
+        ChannelFuture future = bootstrap.bind(port).sync();
+        future.addListener(fu -> {
+            if (fu.isSuccess()) {
+                log.info("server  started on port {}!", port);
+            } else {
+                log.error("server start fail! will close current service!");
+                System.exit(0);
+            }
+        });
+        Channel channel = future.channel();
+        channel.closeFuture().addListener((ChannelFutureListener) f -> {
+            work.shutdownGracefully();
+            ServerManager.PROXY_BOSS_GROUP.shutdownGracefully();
+            ServerManager.PROXY_WORKER_GROUP.shutdownGracefully();
+        });
     }
 }

@@ -1,5 +1,6 @@
 package com.swust.server;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoopGroup;
@@ -15,8 +16,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class ServerManager {
 
-    public static final EventLoopGroup PROXY_BOSS_GROUP = new NioEventLoopGroup(1);
-    public static final EventLoopGroup PROXY_WORKER_GROUP = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors());
+    public static final EventLoopGroup PROXY_BOSS_GROUP = new NioEventLoopGroup(1,
+            new ThreadFactoryBuilder().setNameFormat("server-boss-%d").build());
+    public static final EventLoopGroup PROXY_WORKER_GROUP = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors()<<1
+    ,new ThreadFactoryBuilder().setNameFormat("server-work-%d").build());
 
 
     /**

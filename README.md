@@ -21,6 +21,8 @@ jmeter -n -t F:\JavaProject\Netty_Proxy\Netty_Proxy.jmx  -l test.jtl -e -o ./net
     而Jmeter默认没有timout等待，导致出错。解决方案:
     
   - 务必勾选长连接
+  
+  - 压测可能会出现句柄占用耗尽，可以参考突破句柄限制
 # Netty_Proxy
 
 - 当前2.0.0版本更新如下

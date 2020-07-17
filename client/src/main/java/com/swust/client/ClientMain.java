@@ -31,15 +31,11 @@ import org.apache.commons.cli.Options;
 @Slf4j
 public class ClientMain {
     private static ClientConfig clientConfig;
-    public static  NioEventLoopGroup WORK;
+    public static NioEventLoopGroup WORK = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() << 1,
+            new ThreadFactoryBuilder().setNameFormat("netty-proxy-client-%d").build());
 
 
     public static void main(String[] args) throws Exception {
-        WORK= new NioEventLoopGroup(40,
-                new ThreadFactoryBuilder().setNameFormat("netty-proxy-client-%d").build());
-        WORK.forEach(e->e.execute(()->{
-            System.out.println("thread "+Thread.currentThread().getName()+" 就绪");
-        }));
 
         Options options = new Options();
 
