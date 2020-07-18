@@ -1,7 +1,6 @@
 package com.swust.client.handler;
 
 import com.alibaba.fastjson.JSON;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.swust.client.ClientMain;
 import com.swust.client.ClientManager;
 import com.swust.client.IntranetClient;
@@ -19,7 +18,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -29,11 +29,6 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 public class ClientHandler extends CommonHandler {
-    private final ExecutorService poolExecutor = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() << 2, 3, TimeUnit.MINUTES,
-            new ArrayBlockingQueue<>(Integer.MAX_VALUE >> 4),new ThreadFactoryBuilder().setNameFormat("send-data-%d").build());
-
-    private final ExecutorService connectPool = new ThreadPoolExecutor(Runtime.getRuntime().availableProcessors(), Runtime.getRuntime().availableProcessors() << 2, 3, TimeUnit.MINUTES,
-            new ArrayBlockingQueue<>(Integer.MAX_VALUE >> 4),new ThreadFactoryBuilder().setNameFormat("create-conn-%d").build());
 
     private List<Integer> ports;
     private String password;
@@ -111,16 +106,16 @@ public class ClientHandler extends CommonHandler {
                 try {
                     TimeUnit.SECONDS.sleep(sleep);
                     ClientMain.start();
-                    log.info("Restart client success!");
+                    log.info("restart client success!");
                     return;
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
                 sleep <<= 1;
                 count++;
-                log.warn("Restart client fail,This is the {} retry,will try again after {}s", count, sleep);
+                log.warn("restart client fail,This is the {} retry,will try again after {}s", count, sleep);
             }
-            log.error("The maximum number of retries reached,will exit");
+            log.error("the maximum number of retries reached,will exit");
             System.exit(0);
         });
     }

@@ -40,7 +40,7 @@ public class IntranetClient {
      */
     public IntranetClient connect(String host, int port, ChannelHandlerContext serverChannel, String channelId) throws InterruptedException {
         Bootstrap b = new Bootstrap();
-        b.group(ClientMain.WORK)
+        b.group(ClientManager.PROXY_WORK)
                 .channel(NioSocketChannel.class)
                 .option(ChannelOption.SO_KEEPALIVE, true)
                 .handler(new ChannelInitializer<SocketChannel>() {

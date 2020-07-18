@@ -1,6 +1,5 @@
 package com.swust.client;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.swust.client.handler.ClientHandler;
 import com.swust.common.cmd.CmdOptions;
 import com.swust.common.codec.MessageDecoder;
@@ -9,9 +8,13 @@ import com.swust.common.constant.Constant;
 import com.swust.common.entity.ClientConfig;
 import com.swust.common.entity.ConfigBuilder;
 import com.swust.common.util.CommandUtil;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.internal.StringUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -31,8 +34,6 @@ import org.apache.commons.cli.Options;
 @Slf4j
 public class ClientMain {
     private static ClientConfig clientConfig;
-    public static NioEventLoopGroup WORK = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() << 1,
-            new ThreadFactoryBuilder().setNameFormat("netty-proxy-client-%d").build());
 
 
     public static void main(String[] args) throws Exception {
@@ -88,8 +89,8 @@ public class ClientMain {
     }
 
 
-    public static void start() throws Exception {
-        TcpClient.connect(clientConfig.getServerHost(), Integer.parseInt(clientConfig.getServerPort()), new ChannelInitializer<SocketChannel>() {
+    public static void start()   {
+        connect(clientConfig.getServerHost(), Integer.parseInt(clientConfig.getServerPort()), new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
                 ClientHandler clientHandler = new ClientHandler(clientConfig.getRemotePort(), clientConfig.getServerPassword(),
@@ -98,6 +99,31 @@ public class ClientMain {
                         new IdleStateHandler(60, 20, 0), clientHandler);
             }
         });
+    }
+
+    private static void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws RuntimeException {
+        Bootstrap b = new Bootstrap();
+        try {
+            b.group(ClientManager.WORK)
+                    .channel(NioSocketChannel.class)
+                    .option(ChannelOption.SO_KEEPALIVE, true)
+                    .handler(channelInitializer);
+
+            ChannelFuture future = b.connect(host, port).sync();
+            future.addListener((ChannelFutureListener) future1 -> {
+                boolean success = future1.isSuccess();
+                if (success) {
+                    log.info("connect {} : {} success", host, port);
+                } else {
+                    log.error("connect {} : {} fail", host, port);
+                }
+            });
+
+            future.channel().closeFuture().addListener(f -> ClientManager.WORK.shutdownGracefully());
+        } catch (Exception e) {
+            ClientManager.WORK.shutdownGracefully();
+            throw new RuntimeException("start client fail!", e);
+        }
     }
 
 

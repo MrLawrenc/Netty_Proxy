@@ -1,25 +1,31 @@
 package com.swust.server;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.util.concurrent.DefaultThreadFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author : hz20035009-逍遥
- * @date : 2020/4/20 13:32
- * @description : 工具类
+ * 2020/4/20 13:32
  */
+@Slf4j
 public final class ServerManager {
-
-    public static final EventLoopGroup PROXY_BOSS_GROUP = new NioEventLoopGroup(1,
-            new ThreadFactoryBuilder().setNameFormat("server-boss-%d").build());
-    public static final EventLoopGroup PROXY_WORKER_GROUP = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors()<<1
-    ,new ThreadFactoryBuilder().setNameFormat("server-work-%d").build());
+    /**
+     * 全局的boss group
+     */
+    public static final EventLoopGroup PROXY_BOSS_GROUP = new NioEventLoopGroup(2,
+            new DefaultThreadFactory("server-boss"));
+    /**
+     * 全局的work group
+     */
+    public static final EventLoopGroup PROXY_WORKER_GROUP = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() << 1
+            , new DefaultThreadFactory("server-work"));
 
 
     /**
@@ -34,32 +40,41 @@ public final class ServerManager {
     public static final ConcurrentHashMap<Channel, List<ExtranetServer>> CHANNEL_MAP = new ConcurrentHashMap<>();
 
 
+    /**
+     * 所有已开启的代理服务端
+     */
+    private static final List<ExtranetServer> PROXY_SERVER_LIST = Collections.synchronizedList(new ArrayList<>());
+
 
     /**
-     * 将代理服务端绑定到当前客户端
+     * 判断当前端口的代理服务端是否存在且存活
+     *
+     * @param port 代理端口
+     * @return 是否存在且存活
      */
-    public static void add2ChannelMap(Channel key, ExtranetServer target) {
-        List<ExtranetServer> channels = CHANNEL_MAP.get(key);
-        if (Objects.isNull(channels)) {
-            channels = new ArrayList<>(16);
+    public static boolean alreadyExists(ChannelHandlerContext ctx, int port) {
+        for (ExtranetServer extranetServer : PROXY_SERVER_LIST) {
+            if (extranetServer.getPort() == port && extranetServer.getChannel().isActive()) {
+                extranetServer.getInitializer().getRemoteProxyHandler().setClientCtx(ctx);
+                log.info("the proxy server that exists and opens the port({}) will update the binding relationship with the intranet client", port);
+                return true;
+            }
         }
-        channels.add(target);
-        CHANNEL_MAP.put(key, channels);
+        return false;
     }
 
-
-
-    /**
-     * 端口和服务端映射关系
-     */
-    public static final Map<Integer, ExtranetServer> PORT_MAP = new HashMap<>();
-
-    /**
-     * 判断是否存在与当前客户端绑定的代理服务端
-     */
-    public static ExtranetServer hasServer4ChannelMap(Channel key, int port) {
-        List<ExtranetServer> list = CHANNEL_MAP.get(key);
-        return list == null || list.size() == 0 ? null : list.stream().filter(t -> t.getPort() == port).findFirst().orElse(null);
+    public static void addProxyServer(ExtranetServer extranetServer) {
+        PROXY_SERVER_LIST.add(extranetServer);
     }
+
+    public static List<ExtranetServer> closeAllProxyServer() {
+        PROXY_SERVER_LIST.forEach(s -> {
+            if (s.getChannel().isActive()) {
+                s.getChannel().close();
+            }
+        });
+        return PROXY_SERVER_LIST;
+    }
+
 
 }

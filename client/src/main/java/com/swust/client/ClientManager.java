@@ -2,6 +2,8 @@ package com.swust.client;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.util.concurrent.DefaultThreadFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +17,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ClientManager {
 
-
+    public static NioEventLoopGroup WORK = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() << 1,
+            new DefaultThreadFactory("client-work"));
+    public static NioEventLoopGroup PROXY_WORK = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() << 2,
+            new DefaultThreadFactory("client-proxy-work"));
     /**
      * 锁集合，主要防止代理服务在高并发环境下出现内网代理客户端还未连接上，但是外网数据包已经到了，这时会出现匹配不到对应得内网客户端
      */

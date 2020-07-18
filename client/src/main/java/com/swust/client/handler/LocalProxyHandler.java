@@ -38,7 +38,6 @@ public class LocalProxyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        System.out.println("内网代理客户端线程:"+Thread.currentThread().getName());
         byte[] data = (byte[]) msg;
         Message message = new Message();
         MessageHeader header = message.getHeader();

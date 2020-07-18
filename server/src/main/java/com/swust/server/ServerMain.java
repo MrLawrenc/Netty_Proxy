@@ -1,6 +1,5 @@
 package com.swust.server;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.swust.common.cmd.CmdOptions;
 import com.swust.common.codec.MessageDecoder;
 import com.swust.common.codec.MessageEncoder;
@@ -9,7 +8,6 @@ import com.swust.common.constant.Constant;
 import com.swust.server.handler.TcpServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
@@ -18,7 +16,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.*;
 
-import java.util.concurrent.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author : LiuMing
@@ -28,15 +26,14 @@ import java.util.concurrent.*;
 @Slf4j
 public class ServerMain {
 
-    public static final int PROCESSOR = Runtime.getRuntime().availableProcessors();
-    private static final Executor EXECUTOR = new ThreadPoolExecutor(PROCESSOR,
-            PROCESSOR << 1, 1, TimeUnit.MINUTES,
-            new ArrayBlockingQueue<>(1024),
-            new ThreadFactoryBuilder().setNameFormat("server-business-%d").build(),
-            new ThreadPoolExecutor.AbortPolicy());
+//    public static final int PROCESSOR = Runtime.getRuntime().availableProcessors();
+//    private static final Executor EXECUTOR = new ThreadPoolExecutor(PROCESSOR,
+//            PROCESSOR << 1, 1, TimeUnit.MINUTES,
+//            new ArrayBlockingQueue<>(1024),
+//            new ThreadFactoryBuilder().setNameFormat("server-business-%d").build(),
+//            new ThreadPoolExecutor.AbortPolicy());
 
     //public static NioEventLoopGroup businessExecutor = new NioEventLoopGroup(PROCESSOR, EXECUTOR);
-    public static NioEventLoopGroup businessExecutor = new NioEventLoopGroup(PROCESSOR,  new ThreadFactoryBuilder().setNameFormat("server-business-%d").build());
 
     /**
      * Apache Commons CLI是开源的命令行解析工具，它可以帮助开发者快速构建启动命令，并且帮助你组织命令的参数、以及输出列表等。
@@ -94,19 +91,19 @@ public class ServerMain {
             @Override
             public void initChannel(SocketChannel ch) {
                 TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
-                //int为4字节，定义的长度字段(长度字段+消息体)
                 ch.pipeline().addLast(new MessageDecoder(), new MessageEncoder(),
                         new IdleStateHandler(60, 20, 0, TimeUnit.SECONDS));
 
-                ch.pipeline().addLast(businessExecutor, tcpServerHandler);
+                //一个线程会绑定一个与客户端channel，服务端可以不用再handler开线程
+                //ch.pipeline().addLast(businessExecutor, tcpServerHandler);
+                ch.pipeline().addLast(tcpServerHandler);
             }
         });
     }
 
     private static void initTcpServer(int port, ChannelInitializer<?> channelInitializer) throws Exception {
         ServerBootstrap bootstrap = new ServerBootstrap();
-        NioEventLoopGroup work = new NioEventLoopGroup(12,new ThreadFactoryBuilder().setNameFormat("server-boss111-%d").build());
-        bootstrap.group(ServerManager.PROXY_BOSS_GROUP, work)
+        bootstrap.group(ServerManager.PROXY_BOSS_GROUP, ServerManager.PROXY_WORKER_GROUP)
                 .channel(NioServerSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.TRACE))
                 .childHandler(channelInitializer)
@@ -122,7 +119,6 @@ public class ServerMain {
         });
         Channel channel = future.channel();
         channel.closeFuture().addListener((ChannelFutureListener) f -> {
-            work.shutdownGracefully();
             ServerManager.PROXY_BOSS_GROUP.shutdownGracefully();
             ServerManager.PROXY_WORKER_GROUP.shutdownGracefully();
         });

@@ -4,17 +4,14 @@ import com.swust.common.config.LogUtil;
 import com.swust.server.handler.RemoteProxyHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
-import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import io.netty.util.concurrent.GlobalEventExecutor;
 import lombok.Data;
-import lombok.Setter;
+import lombok.Getter;
 
 /**
  * @author : LiuMing
@@ -31,12 +28,12 @@ public class ExtranetServer {
     private Channel channel;
     private int port;
 
-    private ChannelGroup group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
+    //private ChannelGroup group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
 
 
     public ExtranetServer initTcpServer(int port, ChannelHandlerContext clientCtx) {
         this.port = port;
-        this.initializer = new ExtrantServerInitializer(clientCtx, this);
+        this.initializer = new ExtrantServerInitializer(clientCtx);
         ServerBootstrap b = new ServerBootstrap();
         b.group(ServerManager.PROXY_BOSS_GROUP, ServerManager.PROXY_WORKER_GROUP)
                 .channel(NioServerSocketChannel.class)
@@ -55,23 +52,19 @@ public class ExtranetServer {
         return this;
     }
 
-    /**
-     * 外网代理服务端的initializer
-     */
     public class ExtrantServerInitializer extends ChannelInitializer<SocketChannel> {
-        @Setter
-        private ChannelHandlerContext clientCtx;
-        private ExtranetServer proxyServer;
+        @Getter
+        private final RemoteProxyHandler remoteProxyHandler;
 
-        public ExtrantServerInitializer(ChannelHandlerContext clientCtx, ExtranetServer proxyServer) {
-            this.clientCtx = clientCtx;
-            this.proxyServer = proxyServer;
+        public ExtrantServerInitializer(ChannelHandlerContext clientCtx) {
+            this.remoteProxyHandler = new RemoteProxyHandler(clientCtx, port);
         }
 
         @Override
         protected void initChannel(SocketChannel ch) throws Exception {
             ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder());
-            ch.pipeline().addLast(ServerMain.businessExecutor, "remoteHandler", new RemoteProxyHandler(clientCtx, proxyServer, port));
+            ch.pipeline().addLast("remoteHandler", remoteProxyHandler);
+            //ch.pipeline().addLast( "业务group","remoteHandler", new RemoteProxyHandler(clientCtx, proxyServer, port));
         }
     }
 }
