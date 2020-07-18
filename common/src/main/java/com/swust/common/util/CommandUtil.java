@@ -70,8 +70,4 @@ public class CommandUtil {
         return Arrays.asList(replace.split(","));
     }
 
-    public static void main(String[] args) {
-        System.out.println(parseArray("1,2,3,4,5,6,"));
-    }
-
 }
