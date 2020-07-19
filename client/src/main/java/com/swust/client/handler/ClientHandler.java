@@ -16,8 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -96,7 +94,7 @@ public class ClientHandler extends CommonHandler {
      */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        log.error("client trigger channelInactive,prepare to reconnect after closing the resource!");
+        log.error("client trigger channel inactive,prepare to reconnect after closing the resource!");
         ClientManager.reset();
 
         CompletableFuture.runAsync(() -> {
@@ -164,7 +162,7 @@ public class ClientHandler extends CommonHandler {
         String channelId = message.getHeader().getChannelId();
         ChannelHandlerContext context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
         if (Objects.isNull(context)) {
-            log.info("===================等待代理客户端建立连接============================");
+            log.info("===================等待代理客户端{}建立连接============================",channelId);
             //fix 加锁，可能代理客户端还未连接上就收到了数据包
             long l = System.currentTimeMillis();
             ClientManager.lock(channelId);
@@ -173,6 +171,8 @@ public class ClientHandler extends CommonHandler {
                 log.error("No proxy client was found by id : {}", channelId);
                 log.info("超时:{},仍未等到代理客户端成功建立连接:", (System.currentTimeMillis() - l) + "ms");
             } else {
+                log.info("===================等待代理客户端{}连接成功============================",channelId);
+
                 newObj.writeAndFlush(message.getData());
             }
         } else {
@@ -192,21 +192,6 @@ public class ClientHandler extends CommonHandler {
     }
 
 
-    /**
-     * 维持内网连接,6h执行一次
-     */
-    public void heartPkg(LocalProxyHandler localProxyHandler) {
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    // localProxyHandler.getCtx().writeAndFlush("heart pkg");
-                } catch (Exception e) {
-                    log.warn("time  warning ..................");
-                }
-            }
-        }, 1000 * 60 * 60 * 6, 1000 * 60 * 60 * 6);
-    }
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {

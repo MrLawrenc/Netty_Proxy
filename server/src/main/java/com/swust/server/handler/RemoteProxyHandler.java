@@ -9,6 +9,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -23,9 +24,10 @@ import java.io.LineNumberReader;
 
 @Getter
 @Setter
+@Slf4j
 @ChannelHandler.Sharable
 public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
-    private  ChannelHandlerContext clientCtx;
+    private ChannelHandlerContext clientCtx;
     private final int port;
 
     /**
@@ -62,13 +64,16 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-
-
         Message message = new Message();
         MessageHeader header = message.getHeader();
         header.setType(MessageType.DISCONNECTED);
         header.setChannelId(ctx.channel().id().asLongText());
         clientCtx.writeAndFlush(message);
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log.error(String.format("proxy server(%s) exception", port), cause);
     }
 
     public static void main(String[] args) throws Exception {

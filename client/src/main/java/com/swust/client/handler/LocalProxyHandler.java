@@ -33,6 +33,7 @@ public class LocalProxyHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         ClientManager.ID_SERVICE_CHANNEL_MAP.put(remoteChannelId, ctx);
+        ClientManager.unlock(remoteChannelId);
         //log.debug("put proxy channel id : {}", remoteChannelId);
     }
 

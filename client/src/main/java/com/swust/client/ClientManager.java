@@ -84,8 +84,6 @@ public class ClientManager {
      * 重置容器
      */
     public static void reset() {
-        ID_SERVICE_CHANNEL_MAP.clear();
-        CHANNEL_MAP.clear();
     }
 
 }

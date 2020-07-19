@@ -114,8 +114,10 @@ public class TcpServerHandler extends CommonHandler {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        log.error("the client is disconnected");
-        ServerManager.closeAllProxyServer();
+        log.error("the client({}) is disconnected", ctx.channel().remoteAddress());
+        if (ctx.channel().isActive()) {
+            ctx.close();
+        }
     }
 
     @Override
