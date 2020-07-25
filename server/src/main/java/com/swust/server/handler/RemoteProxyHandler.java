@@ -12,6 +12,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 
@@ -73,7 +74,11 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        log.error(String.format("proxy server(%s) exception", port), cause);
+        if (cause.getCause() instanceof IOException && "Connection reset by peer".equals(cause.getMessage())) {
+        } else {
+            log.error(String.format("proxy server(%s) exception", port), cause);
+            ctx.close();
+        }
     }
 
     public static void main(String[] args) throws Exception {

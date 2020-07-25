@@ -2,7 +2,7 @@ package com.swust.client;
 
 import com.swust.client.handler.ClientHandler;
 import com.swust.common.cmd.CmdOptions;
-import com.swust.common.codec.MessageDecoder;
+import com.swust.common.codec.MessageDecoder0;
 import com.swust.common.codec.MessageEncoder;
 import com.swust.common.constant.Constant;
 import com.swust.common.entity.ClientConfig;
@@ -95,7 +95,7 @@ public class ClientMain {
             public void initChannel(SocketChannel ch) {
                 ClientHandler clientHandler = new ClientHandler(clientConfig.getRemotePort(), clientConfig.getServerPassword(),
                         clientConfig.getProxyHost(), clientConfig.getProxyPort());
-                ch.pipeline().addLast(new MessageDecoder(), new MessageEncoder(),
+                ch.pipeline().addLast(new MessageDecoder0(), new MessageEncoder(),
                         new IdleStateHandler(60, 20, 0), clientHandler);
             }
         });

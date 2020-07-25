@@ -1,7 +1,7 @@
 package com.swust.server;
 
 import com.swust.common.cmd.CmdOptions;
-import com.swust.common.codec.MessageDecoder;
+import com.swust.common.codec.MessageDecoder0;
 import com.swust.common.codec.MessageEncoder;
 import com.swust.common.config.LogFormatter;
 import com.swust.common.constant.Constant;
@@ -91,7 +91,7 @@ public class ServerMain {
             @Override
             public void initChannel(SocketChannel ch) {
                 TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
-                ch.pipeline().addLast(new MessageDecoder(), new MessageEncoder(),
+                ch.pipeline().addLast(new MessageDecoder0(), new MessageEncoder(),
                         new IdleStateHandler(60, 20, 0, TimeUnit.SECONDS));
 
                 //一个线程会绑定一个与客户端channel，服务端可以不用再handler开线程

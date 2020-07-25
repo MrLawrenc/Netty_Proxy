@@ -13,25 +13,26 @@ import java.util.List;
  * @date : 2019/11/4 15:03
  * @description :   消息解码器
  */
-public class MessageDecoder extends ReplayingDecoder<Message> {
+public class MessageDecoder2 extends ReplayingDecoder<Void> {
+
+
+    /**
+     * 以下三种方式均可以使用
+     * 1. 分为读头部和数据两部分
+     * 2. 所有数据一次性读
+     * 3. 引入check point来读取
+     */
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> out) {
-/*        int headLen = byteBuf.readInt();
-        String head = byteBuf.readCharSequence(headLen, StandardCharsets.UTF_8).toString();
 
-
-        int bodyLen = byteBuf.readInt();
-
-        byte[] data = new byte[bodyLen];
-        byteBuf.readBytes(data);
-
-        Message message = new Message(JSON.parseObject(head, MessageHeader.class), data);
-        out.add(message);*/
 
         int dataLen = byteBuf.readInt();
         byte[] data = new byte[dataLen];
         byteBuf.readBytes(data);
         Message message = JSON.parseObject(data, Message.class);
         out.add(message);
+
+
     }
+
 }
