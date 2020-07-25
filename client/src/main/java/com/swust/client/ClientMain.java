@@ -122,7 +122,7 @@ public class ClientMain {
             future.channel().closeFuture().addListener(f -> ClientManager.WORK.shutdownGracefully());
         } catch (Exception e) {
             ClientManager.WORK.shutdownGracefully();
-            throw new RuntimeException("start client fail!", e);
+            log.error("start client fail!", e);
         }
     }
 
