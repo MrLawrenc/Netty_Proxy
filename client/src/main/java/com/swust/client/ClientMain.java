@@ -89,7 +89,7 @@ public class ClientMain {
     }
 
 
-    public static void start() {
+    public static void start() throws Exception{
         connect(clientConfig.getServerHost(), Integer.parseInt(clientConfig.getServerPort()), new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
@@ -101,7 +101,7 @@ public class ClientMain {
         });
     }
 
-    private static void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws RuntimeException {
+    private static void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws Exception {
         Bootstrap b = new Bootstrap();
         try {
             b.group(ClientManager.WORK)
@@ -118,11 +118,9 @@ public class ClientMain {
                     log.error("connect {} : {} fail", host, port);
                 }
             });
-
-            future.channel().closeFuture().addListener(f -> ClientManager.WORK.shutdownGracefully());
         } catch (Exception e) {
-            ClientManager.WORK.shutdownGracefully();
             log.error("start client fail!", e);
+            throw e;
         }
     }
 
