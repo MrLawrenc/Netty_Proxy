@@ -26,7 +26,7 @@ import org.apache.commons.cli.Options;
 /**
  * @author : LiuMing
  * @date : 2019/11/4 14:15
- * @description :   内网的netty客户端，该客户端内部嵌了一个或多个代理客户端，内部的代理客户端是访问本地的应用
+ * 内网的netty客户端，该客户端内部嵌了一个或多个代理客户端，内部的代理客户端是访问本地的应用
  * <p>
  * 单机 -h localhost -p 9000 -password 123lmy -proxy_h localhost -proxy_p 880 -remote_p 11000
  * 多个 -profile F:\JavaProject\Netty_Proxy\client.pro
@@ -89,7 +89,7 @@ public class ClientMain {
     }
 
 
-    public static void start()   {
+    public static void start() {
         connect(clientConfig.getServerHost(), Integer.parseInt(clientConfig.getServerPort()), new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {

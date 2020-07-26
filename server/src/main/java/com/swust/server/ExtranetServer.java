@@ -8,8 +8,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import lombok.Data;
 import lombok.Getter;
 
@@ -33,11 +31,12 @@ public class ExtranetServer {
 
     public ExtranetServer initTcpServer(int port, ChannelHandlerContext clientCtx) {
         this.port = port;
-        this.initializer = new ExtrantServerInitializer(clientCtx);
+        RemoteProxyHandler remoteProxyHandler = new RemoteProxyHandler(clientCtx, port);
+        this.initializer = new ExtrantServerInitializer(clientCtx, remoteProxyHandler);
         ServerBootstrap b = new ServerBootstrap();
         b.group(ServerManager.PROXY_BOSS_GROUP, ServerManager.PROXY_WORKER_GROUP)
                 .channel(NioServerSocketChannel.class)
-                .handler(new LoggingHandler(LogLevel.TRACE))
+                //.handler(new LoggingHandler(LogLevel.TRACE))
                 .childHandler(initializer)
                 .childOption(ChannelOption.SO_KEEPALIVE, true);
         ChannelFuture future = b.bind(port);
@@ -52,12 +51,12 @@ public class ExtranetServer {
         return this;
     }
 
-    public class ExtrantServerInitializer extends ChannelInitializer<SocketChannel> {
+    public static class ExtrantServerInitializer extends ChannelInitializer<SocketChannel> {
         @Getter
         private final RemoteProxyHandler remoteProxyHandler;
 
-        public ExtrantServerInitializer(ChannelHandlerContext clientCtx) {
-            this.remoteProxyHandler = new RemoteProxyHandler(clientCtx, port);
+        public ExtrantServerInitializer(ChannelHandlerContext clientCtx, RemoteProxyHandler remoteProxyHandler) {
+            this.remoteProxyHandler = remoteProxyHandler;
         }
 
         @Override

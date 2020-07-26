@@ -10,9 +10,9 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.concurrent.DefaultThreadFactory;
+import io.netty.util.concurrent.UnorderedThreadPoolEventExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.*;
 
@@ -25,15 +25,6 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 public class ServerMain {
-
-//    public static final int PROCESSOR = Runtime.getRuntime().availableProcessors();
-//    private static final Executor EXECUTOR = new ThreadPoolExecutor(PROCESSOR,
-//            PROCESSOR << 1, 1, TimeUnit.MINUTES,
-//            new ArrayBlockingQueue<>(1024),
-//            new ThreadFactoryBuilder().setNameFormat("server-business-%d").build(),
-//            new ThreadPoolExecutor.AbortPolicy());
-
-    //public static NioEventLoopGroup businessExecutor = new NioEventLoopGroup(PROCESSOR, EXECUTOR);
 
     /**
      * Apache Commons CLI是开源的命令行解析工具，它可以帮助开发者快速构建启动命令，并且帮助你组织命令的参数、以及输出列表等。
@@ -87,25 +78,29 @@ public class ServerMain {
 
 
     private static void start(int port, String password) throws Exception {
+        TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
+        UnorderedThreadPoolEventExecutor eventExecutors = new UnorderedThreadPoolEventExecutor(4,new DefaultThreadFactory("main-server-business"));
         initTcpServer(port, new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
-                TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
                 ch.pipeline().addLast(new MessageDecoder0(), new MessageEncoder(),
                         new IdleStateHandler(60, 20, 0, TimeUnit.SECONDS));
 
-                //一个线程会绑定一个与客户端channel，服务端可以不用再handler开线程
+                //channel是永远绑定在一个eventLoop上的，所以在对确定的客户端，服务端永远是一个线程在处理。
+                //因此，当某一客户端发送消息很多，且服务端处理比较耗时时，那么使用NioEventLoopGroup作为线程池队列会无限增长导致oom。
+                //使用UnorderedThreadPoolEventExecutor可以解决。和NioEventLoopGroup主要区别于next方法
                 //ch.pipeline().addLast(businessExecutor, tcpServerHandler);
-                ch.pipeline().addLast(tcpServerHandler);
+                ch.pipeline().addLast(eventExecutors,"serverHandler",tcpServerHandler);
             }
         });
+
     }
 
     private static void initTcpServer(int port, ChannelInitializer<?> channelInitializer) throws Exception {
         ServerBootstrap bootstrap = new ServerBootstrap();
         bootstrap.group(ServerManager.PROXY_BOSS_GROUP, ServerManager.PROXY_WORKER_GROUP)
                 .channel(NioServerSocketChannel.class)
-                .handler(new LoggingHandler(LogLevel.TRACE))
+                //.handler(new LoggingHandler(LogLevel.TRACE))
                 .childHandler(channelInitializer)
                 .childOption(ChannelOption.SO_KEEPALIVE, true);
         ChannelFuture future = bootstrap.bind(port).sync();

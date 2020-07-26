@@ -13,7 +13,7 @@ import lombok.Getter;
 /**
  * @author : LiuMing
  * @date : 2019/11/4 20:00
- * @description :   内网代理客户端
+ * 内网代理客户端
  */
 @Getter
 public class IntranetClient {

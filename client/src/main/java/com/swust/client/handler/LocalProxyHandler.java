@@ -22,8 +22,8 @@ public class LocalProxyHandler extends ChannelInboundHandlerAdapter {
      * <br>
      * 不使用channel是减少当前handler执行链
      */
-    private ChannelHandlerContext serverChannel;
-    private String remoteChannelId;
+    private final ChannelHandlerContext serverChannel;
+    private final String remoteChannelId;
 
     public LocalProxyHandler(ChannelHandlerContext serverChannel, String remoteChannelId) {
         this.serverChannel = serverChannel;

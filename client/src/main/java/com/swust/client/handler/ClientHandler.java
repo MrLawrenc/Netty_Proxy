@@ -28,10 +28,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ClientHandler extends CommonHandler {
 
-    private List<Integer> ports;
-    private String password;
-    private List<String> proxyAddress;
-    private List<Integer> proxyPort;
+    private final List<Integer> ports;
+    private final String password;
+    private final List<String> proxyAddress;
+    private final List<Integer> proxyPort;
     /**
      * 默认重新拉起客户端的起始秒数
      */
