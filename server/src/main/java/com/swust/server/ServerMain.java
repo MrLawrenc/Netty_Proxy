@@ -8,9 +8,11 @@ import com.swust.common.constant.Constant;
 import com.swust.server.handler.TcpServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.handler.traffic.GlobalTrafficShapingHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.UnorderedThreadPoolEventExecutor;
 import lombok.extern.slf4j.Slf4j;
@@ -78,19 +80,30 @@ public class ServerMain {
 
 
     private static void start(int port, String password) throws Exception {
+        //全局流量整形
+        GlobalTrafficShapingHandler globalTrafficShapingHandler =
+                new GlobalTrafficShapingHandler(new NioEventLoopGroup(), 100 * 1024 * 1024, 100 * 1024 * 1024);
+
         TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
-        UnorderedThreadPoolEventExecutor eventExecutors = new UnorderedThreadPoolEventExecutor(4,new DefaultThreadFactory("main-server-business"));
+        UnorderedThreadPoolEventExecutor eventExecutors = new UnorderedThreadPoolEventExecutor(4, new DefaultThreadFactory("main-server-business"));
         initTcpServer(port, new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
                 ch.pipeline().addLast(new MessageDecoder0(), new MessageEncoder(),
                         new IdleStateHandler(60, 20, 0, TimeUnit.SECONDS));
 
+
+                //流量整形 读写控制100m
+                ch.pipeline().addLast("TSHandler", globalTrafficShapingHandler);
+
+                //每5次write才flush 增强吞吐量 但是增加了延时
+                //ch.pipeline().addLast("flushEnhance",new FlushConsolidationHandler(5,true));
+
                 //channel是永远绑定在一个eventLoop上的，所以在对确定的客户端，服务端永远是一个线程在处理。
                 //因此，当某一客户端发送消息很多，且服务端处理比较耗时时，那么使用NioEventLoopGroup作为线程池队列会无限增长导致oom。
                 //使用UnorderedThreadPoolEventExecutor可以解决。和NioEventLoopGroup主要区别于next方法
                 //ch.pipeline().addLast(businessExecutor, tcpServerHandler);
-                ch.pipeline().addLast(eventExecutors,"serverHandler",tcpServerHandler);
+                ch.pipeline().addLast(eventExecutors, "serverHandler", tcpServerHandler);
             }
         });
 
