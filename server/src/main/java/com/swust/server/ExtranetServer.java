@@ -1,6 +1,5 @@
 package com.swust.server;
 
-import com.swust.common.config.LogUtil;
 import com.swust.server.handler.RemoteProxyHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -10,13 +9,14 @@ import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import lombok.Data;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author : LiuMing
  * 2019/11/4 10:37
  * 外网代理
  */
-@Data
+@Data@Slf4j
 public class ExtranetServer {
     private ExtrantServerInitializer initializer;
 
@@ -31,8 +31,7 @@ public class ExtranetServer {
 
     public ExtranetServer initTcpServer(int port, ChannelHandlerContext clientCtx) {
         this.port = port;
-        RemoteProxyHandler remoteProxyHandler = new RemoteProxyHandler(clientCtx, port);
-        this.initializer = new ExtrantServerInitializer(clientCtx, remoteProxyHandler);
+        this.initializer = new ExtrantServerInitializer(clientCtx,port);
         ServerBootstrap b = new ServerBootstrap();
         b.group(ServerManager.PROXY_BOSS_GROUP, ServerManager.PROXY_WORKER_GROUP)
                 .channel(NioServerSocketChannel.class)
@@ -42,9 +41,9 @@ public class ExtranetServer {
         ChannelFuture future = b.bind(port);
         future.addListener(f -> {
             if (f.isSuccess()) {
-                LogUtil.infoLog("Register success, start server on port: {}", port);
+                log.info("Register success, start server on port: {}", port);
             } else {
-                LogUtil.errorLog(" Start proxy server on port:{}  fail! ", port);
+                log.error(" Start proxy server on port:{}  fail! ", port);
             }
         });
         this.channel = future.channel();
@@ -55,12 +54,14 @@ public class ExtranetServer {
         @Getter
         private final RemoteProxyHandler remoteProxyHandler;
 
-        public ExtrantServerInitializer(ChannelHandlerContext clientCtx, RemoteProxyHandler remoteProxyHandler) {
-            this.remoteProxyHandler = remoteProxyHandler;
+        public ExtrantServerInitializer(ChannelHandlerContext clientCtx, int port) {
+            System.out.println("爱神的箭按实际大数据撒娇撒娇娇——————————————————————————");
+            this.remoteProxyHandler =  new RemoteProxyHandler(clientCtx, port);
         }
 
         @Override
         protected void initChannel(SocketChannel ch) throws Exception {
+            System.out.println("爱神的箭按实际大数据撒娇撒娇娇");
             ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder());
             ch.pipeline().addLast("remoteHandler", remoteProxyHandler);
             //ch.pipeline().addLast( "业务group","remoteHandler", new RemoteProxyHandler(clientCtx, proxyServer, port));

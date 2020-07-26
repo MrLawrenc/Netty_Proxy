@@ -1,9 +1,9 @@
 package com.swust.common.util;
 
 import com.swust.common.cmd.CmdOptions;
-import com.swust.common.config.LogUtil;
 import com.swust.common.entity.ClientConfig;
 import com.swust.common.entity.ConfigBuilder;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.Options;
 
 import java.io.FileInputStream;
@@ -15,8 +15,9 @@ import java.util.Properties;
 /**
  * @author : MrLawrenc
  * @date : 2020/4/25 13:14
- * @description : 命令行参数工具类
+ * 命令行参数工具类
  */
+@Slf4j
 public class CommandUtil {
     /**
      * 设置客户端参数列表
@@ -45,7 +46,7 @@ public class CommandUtil {
         Properties properties = new Properties();
         try {
             properties.load(new FileInputStream(filePath));
-            LogUtil.debugLog(properties.toString());
+            log.info(properties.toString());
         } catch (IOException e) {
             throw new RuntimeException("Parse profile error!", e);
         }
@@ -63,7 +64,7 @@ public class CommandUtil {
     }
 
     /**
-     * 入参格式必须为 : [1,2,3,4]
+     * 入参格式必须为 : [1,2,3,4] 或 1,2,3,4
      */
     public static List<String> parseArray(String source) {
         String replace = source.replace("\\[", "").replace("]", "");

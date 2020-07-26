@@ -1,7 +1,6 @@
 package com.swust.client;
 
 import com.swust.client.handler.LocalProxyHandler;
-import com.swust.common.config.LogUtil;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
@@ -9,13 +8,14 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author : LiuMing
  * @date : 2019/11/4 20:00
  * 内网代理客户端
  */
-@Getter
+@Getter@Slf4j
 public class IntranetClient {
 
 
@@ -56,7 +56,7 @@ public class IntranetClient {
             if (f.isSuccess()) {
                 // LogUtil.infoLog("Start client proxy success，host:{} port:{}", host, port);
             } else {
-                LogUtil.errorLog("Start client proxy fail，host:{} port:{}", host, port);
+                log.error("Start client proxy fail，host:{} port:{}", host, port);
             }
         });
         return this;

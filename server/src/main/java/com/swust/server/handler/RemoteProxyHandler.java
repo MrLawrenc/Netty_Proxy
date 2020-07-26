@@ -12,7 +12,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 
@@ -20,7 +19,7 @@ import java.io.LineNumberReader;
  * @author : LiuMing
  * 2019/11/4 13:54
  * 代理服务器的handler，当请求公网暴露的代理端口时，会转发到相应的客户端，
- * 为了能启用多客户端，禁止@ChannelHandler.Sharable注解
+ * fix:若启用多客户端，且绑定的代理服务为同一个，@ChannelHandler.Sharable注解会导致clientCtx被覆盖
  */
 
 @Getter
@@ -74,11 +73,7 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        if (cause.getCause() instanceof IOException && "Connection reset by peer".equals(cause.getMessage())) {
-        } else {
-            log.error(String.format("proxy server(%s) exception", port), cause);
-            ctx.close();
-        }
+        ctx.close();
     }
 
     public static void main(String[] args) throws Exception {
