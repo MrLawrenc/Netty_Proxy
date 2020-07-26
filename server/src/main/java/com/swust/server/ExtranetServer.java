@@ -55,13 +55,11 @@ public class ExtranetServer {
         private final RemoteProxyHandler remoteProxyHandler;
 
         public ExtrantServerInitializer(ChannelHandlerContext clientCtx, int port) {
-            System.out.println("爱神的箭按实际大数据撒娇撒娇娇——————————————————————————");
             this.remoteProxyHandler =  new RemoteProxyHandler(clientCtx, port);
         }
 
         @Override
         protected void initChannel(SocketChannel ch) throws Exception {
-            System.out.println("爱神的箭按实际大数据撒娇撒娇娇");
             ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder());
             ch.pipeline().addLast("remoteHandler", remoteProxyHandler);
             //ch.pipeline().addLast( "业务group","remoteHandler", new RemoteProxyHandler(clientCtx, proxyServer, port));
