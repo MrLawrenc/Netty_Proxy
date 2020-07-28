@@ -4,6 +4,7 @@ import com.swust.common.cmd.CmdOptions;
 import com.swust.common.codec.MessageDecoder0;
 import com.swust.common.codec.MessageEncoder;
 import com.swust.common.constant.Constant;
+import com.swust.server.handler.MessageDispatcher;
 import com.swust.server.handler.TcpServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -83,12 +84,14 @@ public class ServerMain {
                 new GlobalTrafficShapingHandler(new NioEventLoopGroup(), 100 * 1024 * 1024, 100 * 1024 * 1024);
 
         TcpServerHandler tcpServerHandler = new TcpServerHandler(password);
+        //同一个channel可以使用不同的线程执行业务逻辑
         UnorderedThreadPoolEventExecutor eventExecutors = new UnorderedThreadPoolEventExecutor(4, new DefaultThreadFactory("main-server-business"));
         initTcpServer(port, new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
-                ch.pipeline().addLast(new MessageDecoder0(), new MessageEncoder(),
-                        new IdleStateHandler(60, 20, 0, TimeUnit.SECONDS));
+
+                ChannelPipeline pipeline = ch.pipeline();
+                pipeline.addLast(new IdleStateHandler(60, 20, 0, TimeUnit.SECONDS));
 
 
                 //流量整形 读写控制100m
@@ -97,11 +100,16 @@ public class ServerMain {
                 //每5次write才flush 增强吞吐量 但是增加了延时
                 //ch.pipeline().addLast("flushEnhance",new FlushConsolidationHandler(5,true));
 
+
+                pipeline.addLast(new MessageDispatcher())
+                        .addLast("decode", new MessageDecoder0())
+                        .addLast("encode", new MessageEncoder());
+
                 //channel是永远绑定在一个eventLoop上的，所以在对确定的客户端，服务端永远是一个线程在处理。
                 //因此，当某一客户端发送消息很多，且服务端处理比较耗时时，那么使用NioEventLoopGroup作为线程池队列会无限增长导致oom。
                 //使用UnorderedThreadPoolEventExecutor可以解决。和NioEventLoopGroup主要区别于next方法
                 //ch.pipeline().addLast(businessExecutor, tcpServerHandler);
-                ch.pipeline().addLast(eventExecutors, "serverHandler", tcpServerHandler);
+                pipeline.addLast(eventExecutors, "businessHandler", tcpServerHandler);
             }
         });
 
