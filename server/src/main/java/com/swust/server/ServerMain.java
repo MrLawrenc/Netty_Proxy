@@ -7,11 +7,13 @@ import com.swust.common.constant.Constant;
 import com.swust.server.handler.TcpServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
+import io.netty.channel.epoll.Epoll;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.traffic.GlobalTrafficShapingHandler;
+import io.netty.util.Version;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.UnorderedThreadPoolEventExecutor;
 import lombok.extern.slf4j.Slf4j;
@@ -72,6 +74,9 @@ public class ServerMain {
             int port = Integer.parseInt(cmd.getOptionValue(CmdOptions.PORT.getLongOpt(), Constant.DEFAULT_PORT));
             String password = cmd.getOptionValue(CmdOptions.PASSWORD.getLongOpt(), Constant.DEFAULT_PASSWORD);
 
+            boolean ePoll = Epoll.isAvailable();
+            log.info("Epoll : " + ePoll);
+            log.info("netty version : {}", Version.identify().entrySet());
             start(port, password);
         }
     }

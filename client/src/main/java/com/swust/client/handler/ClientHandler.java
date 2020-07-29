@@ -111,7 +111,7 @@ public class ClientHandler extends CommonHandler {
                 }
                 sleep <<= 1;
                 count++;
-                log.warn("restart client fail,This is the {} retry,will try again after {}s", count, sleep);
+                log.info("restart client fail,This is the {} retry,will try again after {}s", count, sleep);
             }
             log.error("the maximum number of retries reached,will exit");
             System.exit(0);

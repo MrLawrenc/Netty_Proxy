@@ -13,9 +13,11 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.internal.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.CommandLine;
@@ -89,7 +91,7 @@ public class ClientMain {
     }
 
 
-    public static void start() throws Exception{
+    public static void start() throws Exception {
         connect(clientConfig.getServerHost(), Integer.parseInt(clientConfig.getServerPort()), new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
@@ -103,8 +105,10 @@ public class ClientMain {
 
     private static void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws Exception {
         Bootstrap b = new Bootstrap();
+        NioEventLoopGroup work = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() << 1,
+                new DefaultThreadFactory("client-work"));
         try {
-            b.group(ClientManager.WORK)
+            b.group(work)
                     .channel(NioSocketChannel.class)
                     .option(ChannelOption.SO_KEEPALIVE, true)
                     .handler(channelInitializer);
@@ -118,7 +122,9 @@ public class ClientMain {
                     log.error("connect {} : {} fail", host, port);
                 }
             });
+            future.channel().closeFuture().addListener(f -> work.shutdownGracefully());
         } catch (Exception e) {
+            work.shutdownGracefully();
             log.error("start client fail!", e);
             throw e;
         }

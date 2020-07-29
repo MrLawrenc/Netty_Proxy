@@ -17,8 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ClientManager {
 
-    public static NioEventLoopGroup WORK = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() << 1,
-            new DefaultThreadFactory("client-work"));
+
     public static NioEventLoopGroup PROXY_WORK = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() << 2,
             new DefaultThreadFactory("client-proxy-work"));
     /**
