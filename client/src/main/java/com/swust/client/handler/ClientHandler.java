@@ -75,10 +75,8 @@ public class ClientHandler extends CommonHandler {
         if (type == MessageType.REGISTER_RESULT) {
             processRegisterResult(message);
         } else if (type == MessageType.CONNECTED) {
-            //connectPool.execute(() -> processConnected(ctx, message));
             processConnected(ctx, message);
         } else if (type == MessageType.DATA) {
-            //poolExecutor.execute(() -> processData(message));
             processData(message);
         } else if (type == MessageType.DISCONNECTED) {
             processDisconnected(ctx.channel(), message);
@@ -123,9 +121,9 @@ public class ClientHandler extends CommonHandler {
      */
     private void processRegisterResult(Message message) {
         if (message.getHeader().isSuccess()) {
-            log.info("The proxy server started successfully,server msg:{}", message.getHeader().getDescription());
+            log.info("the proxy server started successfully,server msg:{}", message.getHeader().getDescription());
         } else {
-            log.error("The proxy server failed to open,server msg:{}", message.getHeader().getDescription());
+            log.error("the proxy server failed to open,server msg:{}", message.getHeader().getDescription());
             System.exit(0);
         }
     }
@@ -142,15 +140,15 @@ public class ClientHandler extends CommonHandler {
         int index = ports.indexOf(openTcpPort);
         try {
             IntranetClient intranetClient = new IntranetClient().connect(proxyAddress.get(index)
-                    , proxyPort.get(index), ctx, channelId);
+                    , proxyPort.get(index), ctx, channelId, ctx.channel().eventLoop());
             ClientManager.add2ChannelMap(channel, intranetClient);
         } catch (Exception e) {
             e.printStackTrace();
             Message message = new Message();
             MessageHeader header = message.getHeader();
             if (index == -1) {
-                log.error("Client ports config:{}  current open tcp port:{}", JSON.toJSONString(ports), openTcpPort);
-                header.setDescription("Current msg port is null!");
+                log.error("client ports config:{}  current open tcp port:{}", JSON.toJSONString(ports), openTcpPort);
+                header.setDescription("current msg port is null!");
             }
             header.setType(MessageType.DISCONNECTED);
             header.setChannelId(receiveMessage.getHeader().getChannelId());
@@ -158,21 +156,23 @@ public class ClientHandler extends CommonHandler {
         }
     }
 
+    /**
+     * 转发代理消息到内网
+     */
     public void processData(Message message) {
         String channelId = message.getHeader().getChannelId();
         ChannelHandlerContext context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
         if (Objects.isNull(context)) {
-            log.info("===================等待代理客户端{}建立连接============================",channelId);
-            //fix 加锁，可能代理客户端还未连接上就收到了数据包
-            long l = System.currentTimeMillis();
+
+            long start = System.currentTimeMillis();
             ClientManager.lock(channelId);
             ChannelHandlerContext newObj = ClientManager.ID_SERVICE_CHANNEL_MAP.get(channelId);
             if (Objects.isNull(newObj)) {
-                log.error("No proxy client was found by id : {}", channelId);
-                log.info("超时:{},仍未等到代理客户端成功建立连接:", (System.currentTimeMillis() - l) + "ms");
+                log.error("no proxy client was found by id({}),will loss this msg,wait cos time:{}ms", channelId, (System.currentTimeMillis() - start));
             } else {
-                log.info("===================等待代理客户端{}连接成功============================",channelId);
-
+                if (log.isDebugEnabled()) {
+                    log.debug("wait proxy client connect success(channel id:{}),wait cos time:{}ms", channelId, System.currentTimeMillis() - start);
+                }
                 newObj.writeAndFlush(message.getData());
             }
         } else {
@@ -190,7 +190,6 @@ public class ClientHandler extends CommonHandler {
             ClientManager.removeChannelMapByProxyClient(channel, message.getHeader().getChannelId());
         }
     }
-
 
 
     @Override

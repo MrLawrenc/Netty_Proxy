@@ -18,6 +18,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import io.netty.util.concurrent.UnorderedThreadPoolEventExecutor;
 import io.netty.util.internal.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.cli.CommandLine;
@@ -92,13 +93,16 @@ public class ClientMain {
 
 
     public static void start() throws Exception {
+        UnorderedThreadPoolEventExecutor eventExecutors = new UnorderedThreadPoolEventExecutor(Runtime.getRuntime().availableProcessors() , new DefaultThreadFactory("main-client-business"));
+
         connect(clientConfig.getServerHost(), Integer.parseInt(clientConfig.getServerPort()), new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) {
                 ClientHandler clientHandler = new ClientHandler(clientConfig.getRemotePort(), clientConfig.getServerPassword(),
                         clientConfig.getProxyHost(), clientConfig.getProxyPort());
                 ch.pipeline().addLast(new MessageDecoder0(), new MessageEncoder(),
-                        new IdleStateHandler(60, 20, 0), clientHandler);
+                        new IdleStateHandler(60, 20, 0));
+                ch.pipeline().addLast(eventExecutors, clientHandler);
             }
         });
     }
@@ -106,7 +110,7 @@ public class ClientMain {
     private static void connect(String host, int port, ChannelInitializer<?> channelInitializer) throws Exception {
         Bootstrap b = new Bootstrap();
         NioEventLoopGroup work = new NioEventLoopGroup(Runtime.getRuntime().availableProcessors() << 1,
-                new DefaultThreadFactory("client-work"));
+                new DefaultThreadFactory("main-client-work"));
         try {
             b.group(work)
                     .channel(NioSocketChannel.class)
