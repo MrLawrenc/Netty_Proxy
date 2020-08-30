@@ -95,7 +95,6 @@ public class TcpServerHandler extends CommonHandler {
     private void processData(Message message) {
         ChannelHandlerContext userCtx = ServerManager.USER_CLIENT_MAP.get(message.getHeader().getChannelId());
         if (Objects.isNull(userCtx)) {
-            System.out.println(message.getHeader() + "  " + message.getData().length);
             log.error("received intranet proxy client message，but the corresponding proxy server was not found! ");
         } else {
             userCtx.writeAndFlush(message.getData());

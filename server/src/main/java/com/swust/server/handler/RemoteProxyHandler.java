@@ -64,11 +64,13 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        Message message = new Message();
+/*        Message message = new Message();
         MessageHeader header = message.getHeader();
         header.setType(MessageType.DISCONNECTED);
         header.setChannelId(ctx.channel().id().asLongText());
-        clientCtx.writeAndFlush(message);
+        clientCtx.writeAndFlush(message);*/
+        String channelId = ctx.channel().id().asLongText();
+        ServerManager.USER_CLIENT_MAP.put(channelId, ctx);
     }
 
     @Override
