@@ -1,11 +1,9 @@
 # Netty_Proxy
 
-- 当前2.0.0版本更新如下
-  - 修复之前开启一天左右会出现**断连**的情况
-  - 增加客户端断开之后的**重连**机制
-  - 支持客户端的**一对多**，一个客户端可以绑定多个代理客户端
-  - 优化**资源关闭**机制
-  - 弃用jdk的log框架，引入slf4j
+- 当前2.1.1版本更新如下
+  - 完善线程模型，优化资源使用
+  - 处理客户端和服务端部分资源未释放造成oom的bug
+  - 完善重试机制，加锁来修复高并发下部分消息丢失的bug
 
 ## Server
 
@@ -84,7 +82,7 @@ java -jar client.jar -h 47.96.158.922 -p 9527 -pwd 123lmy -proxy_h localhost -pr
 - proxy_p &emsp;内网被代理的服务端口
 - remote_p&ensp;需要公网，即服务端暴露访问内网应用的端口
 
-若一个客户端需要代理多个服务则使用**一对多模式**
+若一个客户端需要代理多个服务则使用**一对多模式**（一对一也推荐使用该配置）
 
 ```shell
 java -jar -profile  配置文件绝对路径
@@ -174,14 +172,14 @@ remotePort=11000,12000
 
 #### Linux启动脚本例子
 ```shell script
-服务端 nohup java -jar server-2.0.0.jar -port 9527 -password 123lmy >>server.log 2>&1  &
-客户端 nohup java -jar client-2.0.0.jar -h 服务端地址 -p 9527 -password 123lmy -proxy_h localhost -proxy_p 8080 -remote_p 11000 >>client.log 2>&1  &
+服务端 nohup java -jar server-2.1.1.jar -port 9527 -password 123lmy >>server.log 2>&1  &
+客户端 nohup java -jar client-2.1.1.jar -h 服务端地址 -p 9527 -password 123lmy -proxy_h localhost -proxy_p 8080 -remote_p 11000 >>client.log 2>&1  &
 ```
 
 #### 压力测试
 
 - 本地测试服务端，客户端
-- 配置jemeter压测参数，线程数从10-1000，均为1s内发送完成
+- 配置jemeter压测参数，单机可达3000的qps，主要限制在代理客户端开启的连接数
 - 服务端内存占用范围（18-80m），客户端（40-200m）
 
 #### 后期优化
@@ -198,7 +196,6 @@ jmeter -n -t F:\JavaProject\Netty_Proxy\Netty_Proxy.jmx  -l test.jtl -e -o ./net
 ```
 - 最终会使用Netty_Proxy.jmx生成test.jtl源文件，再根据源文件在./netty_proxy目录下生成可视化的测试报告，打开index.html即可
 
-
 ---
 - jmeter注意事项
 - 出现 org.apache.http.NoHttpResponseException 一般是jmeter问题
@@ -207,7 +204,7 @@ jmeter -n -t F:\JavaProject\Netty_Proxy\Netty_Proxy.jmx  -l test.jtl -e -o ./net
       # 10s 
       httpclient4.idletimeout=10000
       httpclient4.retrycount=3
-    ``` 
+    ```
     - 循环4次 每次50个请求  在客户端会发现激活的客户端大于200，可能是由于服务器端的负载过高以及网络带宽占满等因素导致响应延迟加长，
     而Jmeter默认没有timout等待，导致出错。解决方案:
     
