@@ -10,10 +10,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -46,7 +43,7 @@ public class ClientManager {
 
     /**
      * key 开启的内网channel id
-     * value 最大等待时间内网channel连接时间
+     * value timestamp
      */
     public static final ConcurrentHashMap<String, Long> CHANNEL_TIME_MAP = new ConcurrentHashMap<>();
     /**
@@ -81,6 +78,7 @@ public class ClientManager {
                     e.printStackTrace();
                 }
             }
+            CHANNEL_TIME_MAP.remove(channelId);
         }
 
     }
@@ -95,7 +93,7 @@ public class ClientManager {
     public static void add2ChannelMap(Channel key, IntranetClient target) {
         List<IntranetClient> channels = CHANNEL_MAP.get(key);
         if (Objects.isNull(channels)) {
-            channels = new ArrayList<>(16);
+            channels = Collections.synchronizedList(new ArrayList<>(16));
         }
         channels.add(target);
     }

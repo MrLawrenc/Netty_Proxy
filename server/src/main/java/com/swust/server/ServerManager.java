@@ -67,14 +67,6 @@ public final class ServerManager {
         PROXY_SERVER_LIST.add(extranetServer);
     }
 
-    public static List<ExtranetServer> closeAllProxyServer() {
-        PROXY_SERVER_LIST.forEach(s -> {
-            if (s.getChannel().isActive()) {
-                s.getChannel().close();
-            }
-        });
-        return PROXY_SERVER_LIST;
-    }
 
 
 }
