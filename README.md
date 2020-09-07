@@ -30,7 +30,7 @@ java -jar server.jar -p 9527 -pwd 123456
 - p     &emsp;  &emsp;  &emsp;     服务端端口
 - pwd  &emsp;               连接服务端token
 
-###Client
+### Client
 
 ##### 模式说明
 
@@ -108,7 +108,7 @@ remotePort=11000,12000
 
 启动代理客户端之后分别在端口8899和9988启动两个需要被代理的Http服务，之后通过**47.96.158.922:11000**或者**47.96.158.922:12000**即可访问对于的被代理Http服务。
 
-##代理ssh服务示例
+## 代理ssh服务示例
 
 #### 代理服务端启动
 
@@ -116,7 +116,7 @@ remotePort=11000,12000
 java -jar server.jar -port 9527 -password 123456
 ```
 
-####代理客户端端启动
+#### 代理客户端端启动
 
 ```shell
 java -jar client.jar -h 47.96.158.922 -p 9527 -password 123456 -proxy_h localhost -proxy_p 22 -remote_p 12222
@@ -134,7 +134,7 @@ username:xxx
 password:xxx
 ```
 
-##本地测试示例配置
+## 本地测试示例配置
 
 ### server:
 
