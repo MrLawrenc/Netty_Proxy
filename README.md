@@ -148,6 +148,8 @@ password:xxx
  java -jar client.jar -profile E:\Netty_Proxy\client.pro
 ```
 
+如使用IDEA启动，则在Program arguments加入**-profile F:\JavaProject\Netty_Proxy\client.pro**启动参数即可
+
 配置文件如下（项目工程根目录有本地示例配置）
 
 ```properties
