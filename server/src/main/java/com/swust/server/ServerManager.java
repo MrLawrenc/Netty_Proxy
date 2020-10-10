@@ -1,13 +1,15 @@
 package com.swust.server;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -32,12 +34,6 @@ public final class ServerManager {
      * 与当前外网代理服务端连接的用户客户端channel，使用其channel id作为msg的头信息进行传递
      */
     public static final Map<String, ChannelHandlerContext> USER_CLIENT_MAP = new ConcurrentHashMap<>();
-
-    /**
-     * key 为内网客户端
-     * value 内网客户端要求开启的外网代理服务端，可以是多个
-     */
-    public static final ConcurrentHashMap<Channel, List<ExtranetServer>> CHANNEL_MAP = new ConcurrentHashMap<>();
 
 
     /**
