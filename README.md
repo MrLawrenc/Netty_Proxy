@@ -195,24 +195,84 @@ remotePort=12222,13306,16379,27017
 
 #### Linux启动脚本例子
 
-服务端server.sh
+- 以制作server端的service服务脚本为例（推荐）
 
-```shell script
-nohup java -jar server-2.1.1.jar -port 9527 -password 123456 >>server.log 2>&1  &
-```
+  - 首先切换到root创建并编辑文件(文件名即是服务名，自己取)
 
-客户端client.sh
+    ```cmd
+    vim  /etc/systemd/system/netty-server.service
+    ```
 
-```shell
-nohup java -jar client-2.1.1.jar -h 服务端地址 -p 9527 -password 123456 -proxy_h localhost -proxy_p 8080 -remote_p 11000 >>client.log 2>&1  &
-```
+  - 复制以下内容到netty-server.service，并保存退出。
 
-之后赋予权限
+    ```shell
+    Description=Netty Service
+    Documentation=https://github.com/MrLawrenc/Netty_Proxy
+    After=network-online.target
+    Wants=network-online.target
+    
+    [Service]
+    Type=simple
+    ExecStart=/home/plugins/jdk-11.0.4/bin/java -server -Xms256m -Xmx256m -jar /etc/systemd/system/server-2.1.3.jar -port 9599 -password 123456
+    ExecStop=/bin/kill -s QUIT $MAINPID
+    Restart=always
+    StandOutput=syslog
+    
+    StandError=inherit
+    
+    [Install]
+    WantedBy=multi-user.target
+    ```
 
-```shell
-chmod  777 server.sh
-chmod  777 client.sh
-```
+    注意 `/home/plugins/jdk-11.0.4/bin/java`为java可执行命令的全路径（java路径或者在`/usr/bin/java`），不知道在哪儿的可以使用`which java`命令查看
+
+    ![which](https://lmy25.wang/upload/2020/10/which-36b91787a6d54e16b0127f1f703ff16a.png)
+
+    `/etc/systemd/system/server-2.1.3.jar`是自己jar的全路径，systemd 中的所有路径均要写为绝对路径，另外，`~` 在 systemd 中也是无法被识别的，所以你不能写成类似 `~/server-1.2.3.jar` 这种路径。
+
+    检验是否修改正确可以把 ExecStart 中的命令拿出来执行一遍。
+
+    StandOutput配置日志输出，可以自行调整
+
+  - 之后启动服务，查看状态，停止
+
+    ```shell
+    service netty-server start
+    service netty-server status -l
+    service netty-server stop
+    ```
+
+  - 其他
+
+    1. 有更改*.service文件需要使用`systemctl daemon-reload`重新刷新之后再启动服务
+    2. journalctl -u 服务名  可以查看详细service服务日志
+
+- 简单sh启动脚本（不推荐）
+
+  服务端server.sh
+
+  ```shell script
+  nohup java -jar server-2.1.1.jar -port 9527 -password 123456 >>server.log 2>&1  &
+  ```
+
+  客户端client.sh
+
+  ```shell
+  nohup java -jar client-2.1.1.jar -h 服务端地址 -p 9527 -password 123456 -proxy_h localhost -proxy_p 8080 -remote_p 11000 >>client.log 2>&1  &
+  ```
+
+  之后赋予权限
+
+  ```shell
+  chmod  777 server.sh
+  chmod  777 client.sh
+  ```
+
+  启动
+
+  ```shell
+  ./server.sh
+  ```
 
 #### 压力测试
 
@@ -249,3 +309,4 @@ jmeter -n -t F:\JavaProject\Netty_Proxy\Netty_Proxy.jmx  -l test.jtl -e -o ./net
   - 务必勾选长连接
   
   - 压测可能会出现句柄占用耗尽，可以参考突破句柄限制
+
