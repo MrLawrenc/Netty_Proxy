@@ -25,7 +25,8 @@
     </dependencies>
 
     <build>
-        <finalName>server-${version}</finalName>
+       <!-- <finalName>server-${version}</finalName>-->
+        <finalName>${server-name}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

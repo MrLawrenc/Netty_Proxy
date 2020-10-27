@@ -20,6 +20,12 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <common.version>2.1.2</common.version>
+
+        <!--打包包名设置-->
+        <!--<server-name>server-RELEASE</server-name>-->
+        <server-name>server-RELEASE</server-name>
+        <client-name>client-RELEASE</client-name>
+        <common-name>common-${common.version}</common-name>
     </properties>
 
     <dependencyManagement>
