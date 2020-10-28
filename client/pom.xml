@@ -11,7 +11,12 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>client</artifactId>
+    <packaging>jar</packaging>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.target.file.name>mavenGame</project.build.target.file.name>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>com.swust</groupId>
@@ -25,29 +30,18 @@
     </dependencies>
 
     <build>
+        <finalName>${client-name}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.4.1</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <transformers>
-                                <transformer
-                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.swust.client.ClientMain</mainClass>
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <jarname>aaa</jarname>
+                </configuration>
             </plugin>
         </plugins>
     </build>
+
 
 </project>
