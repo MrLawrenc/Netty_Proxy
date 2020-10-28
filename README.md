@@ -344,14 +344,10 @@ remotePort=12222,13306,16379,27017
 - 编写DockerFile
 
   ```shell
-  # 基础镜像使用java
   FROM sapmachine/jdk11
-  # 作者
   MAINTAINER mars <mrliu943903861@163.com>
-  # VOLUME 指定了临时文件目录为/tmp。
-  # 其效果是在主机 /var/lib/docker 目录下创建了一个临时文件，并链接到容器的/tmp
   VOLUME /tmp
-  # 将jar包添加到容器中并更名
+  
   ADD client-RELEASE.jar client.jar
   RUN bash -c 'touch /client.jar'
   
@@ -363,6 +359,25 @@ remotePort=12222,13306,16379,27017
   ```
 
   采用变量的形式引入java启动配置以及client启动的配置
+
+- client.pro客户端配置
+
+  ```shell
+  # 外网服务器地址 同服务器dcoker测试不要写localhost哦
+  host=47.96.158.192
+  # 外网服务器端口
+  port=9999
+  # 外网服务器所需要的密码
+  password=123456
+  
+  # 需要被代理的服务器地址
+  proxyHost=localhost
+  # 需要被代理的服务器端口
+  proxyPort=9997
+  
+  # 访问内网被代理服务所暴露的外网端口
+  remotePort=12001
+  ```
 
 - 同server一样构建client镜像
 
@@ -385,6 +400,8 @@ remotePort=12222,13306,16379,27017
   JAVA_OPTS 为jvm启动参数配置
 
   CONF_PATH 为代理客户端配置文件所在的位置，确保该文件在 `-v` 挂载的目录下。
+
+  **由于Dockerfile设置了挂载目录（/tmp），所以也可以将配置文件client.pro放到/var/lib/docker/tmp目录下**
 
 #### 压力测试
 
