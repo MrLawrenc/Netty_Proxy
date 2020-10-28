@@ -322,19 +322,13 @@ remotePort=12222,13306,16379,27017
   确定`liu/server`镜像存在，之后启动容器
 
   ```shell
-  docker run -e  JAVA_OPTS='-Xmx128m -Xms128m' -e PORT=9999 -e PASSWORD=123456 -p9999:9999 liu/server:latest
-  ```
-
-  或者
-
-  ```shell
   docker run  -e  JAVA_OPTS='-Xmx128m -Xms128m' -e PORT=9999 -e PASSWORD=123456  --name server -p9999:9999 liu/server
   ```
 
-  输出如下则代表启动成功
+  输出如下则代表启动成功（**如果是后台启动可以使用 `docker logs 容器ID/容器NAME` 查看**）
 
   ![启动成功](https://lmy25.wang/%E5%85%B6%E4%BB%96%E5%9B%BE%E5%BA%8A/server%E5%90%AF%E5%8A%A8%E7%BB%93%E6%9E%9C.png)
-
+  
 - 注意若是docker启动时使用了-p映射端口，则需要确保服务器开放的相应的端口权限代理客户端才能访问到。
 
 - 需要后台启动请加`-d`，客户端同理
