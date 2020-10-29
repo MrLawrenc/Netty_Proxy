@@ -313,7 +313,7 @@ remotePort=12222,13306,16379,27017
 
   ![构建结果](https://lmy25.wang/%E5%85%B6%E4%BB%96%E5%9B%BE%E5%BA%8A/server%E6%9E%84%E5%BB%BA%E7%BB%93%E6%9E%9C1.png)
 
-- 启动容器
+- docker启动
 
   首先查看刚构建的镜像
 
@@ -322,7 +322,7 @@ remotePort=12222,13306,16379,27017
   确定`liu/server`镜像存在，之后启动容器
 
   ```shell
-  docker run  -e  JAVA_OPTS='-Xmx128m -Xms128m' -e PORT=9999 -e PASSWORD=123456  --name server -p9999:9999 liu/server
+  docker run  -d  -v /logs:/logs -e  JAVA_OPTS='-Xmx128m -Xms128m' -e PORT=9999 -e PASSWORD=123456  --name server -p9999:9999 liu/server
   ```
 
   输出如下则代表启动成功（**如果是后台启动可以使用 `docker logs 容器ID/容器NAME` 查看**）
@@ -379,10 +379,10 @@ remotePort=12222,13306,16379,27017
   docker build -f ./Dockerfile -t liu/client:latest .
   ```
 
-- 启动
+- docker启动
 
   ```shell
-  docker run -v /tmp:/tmp -e  JAVA_OPTS='-Xmx128m -Xms128m' -e CONF_PATH='/tmp/testclient/client.pro' liu/client
+  docker run -d --name client -v /logs:/logs -v /tmp:/tmp -e  JAVA_OPTS='-Xmx128m -Xms128m' -e CONF_PATH='/tmp/testclient/client.pro' liu/client
   ```
 
   ![启动结果](https://lmy25.wang/%E5%85%B6%E4%BB%96%E5%9B%BE%E5%BA%8A/client%E5%90%AF%E5%8A%A8%E7%BB%93%E6%9E%9C.png)
