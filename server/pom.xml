@@ -11,6 +11,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>server</artifactId>
+    <version>${server.version}</version>
 
     <dependencies>
         <dependency>
@@ -25,7 +26,7 @@
     </dependencies>
 
     <build>
-       <!-- <finalName>server-${version}</finalName>-->
+        <!-- <finalName>server-${version}</finalName>-->
         <finalName>${server-name}</finalName>
         <plugins>
             <plugin>
