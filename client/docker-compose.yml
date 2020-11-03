@@ -1,0 +1,50 @@
+version: '2'
+services:
+  server:
+    image: liu/server
+    restart: unless-stopped
+
+    hostname: proxy_server
+    network_mode: "bridge"
+    volumes:
+    # 日志输出路径，宿主机目录可以视自己情况更改，但容器日志输出目录是在logback中写死的./logs。
+    - /logs:/logs
+    ports:
+      - 9999:9999
+    build:
+      args:
+        # 代理服务端jvm、服务端口、客户端toke等启动参数设置，可以根据需要可以自行设置
+        JAVA_OPTS: -Xmx128m -Xms128m
+        PORT: 9999
+        PASSWORD: 123456
+
+    container_name: server
+  client:
+    image: liu/client
+    restart: unless-stopped
+
+    hostname: proxy_client
+    # 如果不设置网络模式（默认bridge桥接网络） 则可以容器和宿主机通信可以使用ip:端口的方式
+    network_mode: "bridge"
+
+    volumes:
+    - /logs:/logs
+    # 其余需要挂载的目录，如客户端的配置文件，我的在/tmp/testclient/client.pro,挂载的是整个tmp目录，没有挂载配置文件目录会导致File not find
+    - /tmp:/tmp
+
+    build:
+      args:
+        # 128m已经完全足够了 内存不够设置64m即可
+        JAVA_OPTS: -Xmx128m -Xms128m
+        # 代理客户端配置信息
+        CONF_PATH: /tmp/testclient/client.pro
+
+    #docker-compose up -d
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: 192.168.159.129                     ## 修改:宿主机IP
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://47.96.158.220:9092    ## 修改:宿主机IP
+      KAFKA_ZOOKEEPER_CONNECT: "zoo1:2181"
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_BROKER_ID: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    container_name: client

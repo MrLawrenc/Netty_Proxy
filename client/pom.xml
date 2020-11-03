@@ -11,7 +11,13 @@
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>client</artifactId>
+    <version>${client.version}</version>
+    <packaging>jar</packaging>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.build.target.file.name>mavenGame</project.build.target.file.name>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>com.swust</groupId>
@@ -25,6 +31,7 @@
     </dependencies>
 
     <build>
+        <finalName>${client-name}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -49,5 +56,6 @@
             </plugin>
         </plugins>
     </build>
+
 
 </project>

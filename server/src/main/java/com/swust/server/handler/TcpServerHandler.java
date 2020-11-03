@@ -71,7 +71,7 @@ public class TcpServerHandler extends CommonHandler {
     private void processRegister(ChannelHandlerContext ctx, Message message) {
         String password = message.getHeader().getPassword();
         if (this.password == null || !this.password.equals(password)) {
-            message.getHeader().setSuccess(false).setDescription("token check failed!");
+            message.getHeader().setSuccess(false).setDescription("token("+password+") check failed!");
         } else {
             message.getHeader().setSuccess(true).setDescription("success!");
         }
