@@ -32,7 +32,7 @@ java -jar server.jar -p 9527 -pwd 123456
 
 ##### 模式说明
 
-- 一对一（不建议使用）
+- ~~一对一（不建议使用，下个版本将剔除）~~
 
   一个客户端对应一个代理客户端，通过指定相关参数启动，启动方式如下：
 
@@ -274,6 +274,129 @@ remotePort=12222,13306,16379,27017
   ./server.sh
   ```
 
+#### Docker方式启动
+
+#### Server的docker环境准备
+
+- 编写Dockerfile文件（client大致相同）
+
+  ```shell
+  # 基础镜像使用java
+  FROM sapmachine/jdk11
+  # 作者
+  MAINTAINER mars <mrliu943903861@163.com>
+  # VOLUME 指定了临时文件目录为/tmp。
+  # 其效果是在主机 /var/lib/docker 目录下创建了一个临时文件，并链接到容器的/tmp
+  VOLUME /tmp
+  # 将jar包添加到容器中并更名（jar包名字根据实际情况填写）
+  ADD server-RELEASE.jar server.jar
+  RUN bash -c 'touch /server.jar'
+  
+  # 运行jar包
+  #ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/server.jar","-p 9999","-pwd 123456"]
+  ENTRYPOINT  java  ${JAVA_OPTS}  -jar  /server.jar -port  ${P} -password ${PWD}
+  ```
+
+  根据实际情况自行更改jar包名字
+
+- 构建docker镜像
+
+  将server和client的jar和目录下的Dockerfile文件分别上传到对应服务器的同一目录下。
+
+  之后构建docker镜像
+
+  ```shell
+  docker build -f ./Dockerfile -t liu/server:latest .
+  ```
+
+  输出如下则构建成功
+
+  ![构建结果](https://lmy25.wang/%E5%85%B6%E4%BB%96%E5%9B%BE%E5%BA%8A/server%E6%9E%84%E5%BB%BA%E7%BB%93%E6%9E%9C1.png)
+
+- docker启动
+
+  首先查看刚构建的镜像
+
+  ![image-20201026111751368](https://lmy25.wang/%E5%85%B6%E4%BB%96%E5%9B%BE%E5%BA%8A/%20%E6%9F%A5%E7%9C%8B%E9%95%9C%E5%83%8F.png)
+
+  确定`liu/server`镜像存在，之后启动容器
+
+  ```shell
+  docker run  -d  -v /logs:/logs -e  JAVA_OPTS='-Xmx128m -Xms128m' -e PORT=9999 -e PASSWORD=123456  --name server -p9999:9999 liu/server
+  ```
+
+  输出如下则代表启动成功（**如果是后台启动可以使用 `docker logs 容器ID/容器NAME` 查看**）
+
+  ![启动成功](https://lmy25.wang/%E5%85%B6%E4%BB%96%E5%9B%BE%E5%BA%8A/server%E5%90%AF%E5%8A%A8%E7%BB%93%E6%9E%9C.png)
+  
+- 注意若是docker启动时使用了-p映射端口，则需要确保服务器开放的相应的端口权限代理客户端才能访问到。
+
+- 需要后台启动请加`-d`，客户端同理
+
+#### Client的docker环境准备
+
+- 编写DockerFile
+
+  ```shell
+  FROM sapmachine/jdk11
+  MAINTAINER mars <mrliu943903861@163.com>
+  VOLUME /tmp
+  
+  ADD client-RELEASE.jar client.jar
+  RUN bash -c 'touch /client.jar'
+  
+  # 只是单纯的拼接
+  #ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/client.jar","-profile","/tmp/testclient/client.pro"]
+  #可以替换变量
+  ENTRYPOINT  java  ${JAVA_OPTS}  -jar  /client.jar -profile   ${CONF_PATH}
+  #CMD ["-profile /tmp/testclient/client.pro"]
+  ```
+
+  采用变量的形式引入java启动配置以及client启动的配置
+
+- client.pro客户端配置
+
+  ```shell
+  # 外网服务器地址 同服务器dcoker测试不要写localhost哦
+  host=47.96.158.192
+  # 外网服务器端口
+  port=9999
+  # 外网服务器所需要的密码
+  password=123456
+  
+  # 需要被代理的服务器地址
+  proxyHost=localhost
+  # 需要被代理的服务器端口
+  proxyPort=9997
+  
+  # 访问内网被代理服务所暴露的外网端口
+  remotePort=12001
+  ```
+
+- 同server一样构建client镜像
+
+  ```shell
+  docker build -f ./Dockerfile -t liu/client:latest .
+  ```
+
+- docker启动
+
+  ```shell
+  docker run -d --name client -v /logs:/logs -v /tmp:/tmp -e  JAVA_OPTS='-Xmx128m -Xms128m' -e CONF_PATH='/tmp/testclient/client.pro' liu/client
+  ```
+
+  ![启动结果](https://lmy25.wang/%E5%85%B6%E4%BB%96%E5%9B%BE%E5%BA%8A/client%E5%90%AF%E5%8A%A8%E7%BB%93%E6%9E%9C.png)
+
+  同时服务端日志显示注册成功的消息![服务端注册日志](https://lmy25.wang/%E5%85%B6%E4%BB%96%E5%9B%BE%E5%BA%8A/%E6%9C%8D%E5%8A%A1%E7%AB%AF%E6%94%B6%E5%88%B0%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%B3%A8%E5%86%8C%E6%B6%88%E6%81%AF.png)
+
+  需要注意的是，client容器使用的配置文件需要使用 `-v` 命令将宿主机文件目录挂载到容器里，否则启动client之后则会报 ```File not find``` 异常。
+
+  JAVA_OPTS 为jvm启动参数配置
+
+  CONF_PATH 为代理客户端配置文件所在的位置，确保该文件在 `-v` 挂载的目录下。
+
+  **由于Dockerfile设置了挂载目录（/tmp），所以也可以将配置文件client.pro放到/var/lib/docker/tmp目录下**
+
 #### 压力测试
 
 - 本地测试服务端，客户端
@@ -285,10 +408,12 @@ remotePort=12222,13306,16379,27017
 - netty各端线程数控制，尽量共享EventLoopGroup
 - 资源控制
 
-#### 其他(Jmeter生成性能测试报告)
+  #### 其他(Jmeter生成性能测试报告)
+
 - 使用创建好的jmx文件
 - 进入jmeter bin目录
 - 执行
+
 ```cmd
 jmeter -n -t F:\JavaProject\Netty_Proxy\Netty_Proxy.jmx  -l test.jtl -e -o ./netty_proxy
 ```

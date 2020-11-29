@@ -78,6 +78,7 @@ public class ServerMain {
             boolean ePoll = Epoll.isAvailable();
             log.info("Epoll : " + ePoll);
             log.info("netty version : {}", Version.identify().entrySet());
+            log.info("pwd:{}",password);
             start(port, password);
         }
     }

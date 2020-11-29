@@ -19,7 +19,17 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+
+        <!--版本统一声明-->
         <common.version>2.1.2</common.version>
+        <server.version>2.1.3</server.version>
+        <client.version>2.1.3</client.version>
+
+        <!--打包包名设置-->
+        <!--<server-name>server-${server.version}</server-name>-->
+        <server-name>server-RELEASE</server-name>
+        <client-name>client-RELEASE</client-name>
+        <common-name>common-${common.version}</common-name>
     </properties>
 
     <dependencyManagement>
