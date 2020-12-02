@@ -3,7 +3,7 @@ host=localhost
 # 外网服务器端口
 port=9000
 # 外网服务器所需要的密码
-password=123lmy
+password=121325
 
 # 需要被代理的服务器地址
 proxyHost=localhost,localhost

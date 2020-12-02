@@ -4,6 +4,7 @@ import com.swust.common.cmd.CmdOptions;
 import com.swust.common.codec.MessageDecoder0;
 import com.swust.common.codec.MessageEncoder;
 import com.swust.common.constant.Constant;
+import com.swust.common.util.DirectMemoryReport;
 import com.swust.server.handler.MessageDispatcher;
 import com.swust.server.handler.TcpServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
@@ -39,6 +40,7 @@ public class ServerMain {
      * <p>      </>询问阶段：通过查询CommandLine询问进入到哪个程序分支中
      */
     public static void main(String[] args) throws Exception {
+        new DirectMemoryReport().start();
         /*
          *
          * 1.定义阶段:
