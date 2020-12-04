@@ -24,9 +24,10 @@ import org.apache.commons.cli.*;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * 服务端入口
+ *
  * @author : LiuMing
  * 2019/11/4 9:46
- * 服务端
  */
 @Slf4j
 public class ServerMain {
@@ -78,9 +79,7 @@ public class ServerMain {
             String password = cmd.getOptionValue(CmdOptions.PASSWORD.getLongOpt(), Constant.DEFAULT_PASSWORD);
 
             boolean ePoll = Epoll.isAvailable();
-            log.info("Epoll : " + ePoll);
-            log.info("netty version : {}", Version.identify().entrySet());
-            log.info("pwd:{}",password);
+            log.info("epoll is available:{}\nnetty version : {}\npwd:{}", ePoll, Version.identify().entrySet(), password);
             start(port, password);
         }
     }
