@@ -62,10 +62,21 @@ public class RemoteProxyHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         String channelId = ctx.channel().id().asLongText();
         ServerManager.USER_CLIENT_MAP.remove(channelId, ctx);
+
+        log.debug("proxy server({}) actively disconnect", ctx.channel());
+        //fix mysql too many connection异常. 通知代理客户端可以断开了，否则客户端连接会一直占用
+        Message message = new Message();
+        MessageHeader header = message.getHeader();
+        header.setType(MessageType.DISCONNECTED);
+        header.setChannelId(channelId);
+        clientCtx.writeAndFlush(message);
+
+        super.channelInactive(ctx);
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log.error("proxy server({}) exception", ctx.channel(), cause);
         ctx.close();
     }
 

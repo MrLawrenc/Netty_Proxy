@@ -1,16 +1,12 @@
 package com.swust.client.handler;
 
 import com.swust.client.ClientManager;
-import com.swust.client.IntranetClient;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageHeader;
 import com.swust.common.protocol.MessageType;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Iterator;
 
 /**
  * @author : LiuMing
@@ -49,18 +45,5 @@ public class LocalProxyHandler extends ChannelInboundHandlerAdapter {
         message.setData(data);
         header.setChannelId(remoteChannelId);
         serverChannel.writeAndFlush(message);
-    }
-
-    @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
-        ClientManager.CHANNEL_MAP.values().forEach(intranetClients -> {
-            Iterator<IntranetClient> iterator = intranetClients.iterator();
-            while (iterator.hasNext()) {
-                Channel channel = iterator.next().getChannel();
-                if (channel == ctx.channel()) {
-                    iterator.remove();
-                }
-            }
-        });
     }
 }
