@@ -187,6 +187,7 @@ public class ClientHandler extends CommonHandler {
         ChannelHandlerContext context = ClientManager.ID_SERVICE_CHANNEL_MAP.get(message.getHeader().getChannelId());
         if (Objects.nonNull(context)) {
             context.close();
+            log.debug("proxy server closed current client,will close {}",context.channel());
             ClientManager.removeChannelMapByProxyClient(channel, message.getHeader().getChannelId());
         }
     }

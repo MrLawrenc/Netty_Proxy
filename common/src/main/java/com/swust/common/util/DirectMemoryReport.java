@@ -26,12 +26,12 @@ public class DirectMemoryReport {
             public void run() {
                 try {
                     if (log.isDebugEnabled()) {
-                        log.info("netty_direct_memory:{}k", PlatformDependent.usedDirectMemory() / 1024);
+                        log.debug("netty_direct_memory:{}k", PlatformDependent.usedDirectMemory() / 1024);
                     }
                 } catch (Exception ignored) {
                 }
             }
-        }, 10, 2 * 1000);
+        }, 10, 10*60 * 1000);
     }
 
     @Deprecated
