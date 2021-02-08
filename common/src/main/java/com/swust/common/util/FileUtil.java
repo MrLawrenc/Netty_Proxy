@@ -1,10 +1,7 @@
-package com.swust.client;
+package com.swust.common.util;
 
-import com.alibaba.fastjson.JSON;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
+import com.swust.common.entity.CheckCodeInfo;
+import com.swust.common.entity.FileInfo;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayInputStream;
@@ -40,15 +37,6 @@ public final class FileUtil {
                     "1000", "1001", "1010", "1011",
                     "1100", "1101", "1110", "1111"};
 
-    public static void main(String[] args) {
-        File file = new File("E:/test1.txt");
-        log.info("原始文件大小 : {} B", file.length());
-        //单位 kb
-        FileInfo fileInfo = blockFile(file, 1024 * 512);
-        log.info(JSON.toJSONString(fileInfo));
-        log.info("文件信息大小 : {} B", JSON.toJSONString(fileInfo).length());
-
-    }
 
     public static FileInfo blockFile(File file, int byteSize) {
         try (InputStream inputStream = new FileInputStream(file)) {
@@ -178,44 +166,7 @@ public final class FileUtil {
         return checksumEngine.getValue();
     }
 
-    @Data
-    @Accessors(chain = true)
-    public static class FileInfo {
-        private String filePath;
-        /**
-         * 数据块的校验码信息，包含 弱滚动校验码和强校验码   最后一个为末尾的数据块校验码信息
-         */
-        private List<CheckCodeInfo> checkCodeInfos;
-        /**
-         * 每个均匀数据块的大小 单位是kb
-         */
-        private final int everyEvenlyBlockSize;
-        /**
-         * 最后一个数据块的大小，一定满足 {@link FileInfo#lastBlockSize}<={@link FileInfo#everyEvenlyBlockSize}
-         */
-        private int lastBlockSize;
-
-        public FileInfo(int everyEvenlyBlockSize) {
-            this.everyEvenlyBlockSize = everyEvenlyBlockSize;
-        }
-    }
 
 
-    /**
-     * 校验码信息
-     */
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class CheckCodeInfo {
-        /**
-         * adler32弱校验  生成快
-         */
-        private long weakToken;
-        /**
-         * md5强校验 生成慢
-         */
-        private String strongToken;
-    }
 
 }
