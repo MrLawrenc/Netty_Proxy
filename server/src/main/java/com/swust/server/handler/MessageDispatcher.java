@@ -9,7 +9,6 @@ import io.netty.channel.ChannelPipeline;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author hz20035009-逍遥
  * date   2020/7/28 17:56
  * <p>
  * 消息分发器

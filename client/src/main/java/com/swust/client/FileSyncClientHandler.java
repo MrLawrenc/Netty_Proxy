@@ -1,8 +1,10 @@
 package com.swust.client;
 
 import com.alibaba.fastjson.JSON;
+import com.swust.common.entity.FileInfo;
 import com.swust.common.protocol.Message;
 import com.swust.common.protocol.MessageType;
+import com.swust.common.util.FileUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
@@ -39,7 +41,7 @@ public class FileSyncClientHandler extends SimpleChannelInboundHandler<ByteBuf> 
         ctx.executor().scheduleAtFixedRate(() -> {
             Channel channel = ctx.channel();
             //每1M分块
-            FileUtil.FileInfo fileInfo = FileUtil.blockFile(new File(monitorPath), 1024 * 1024);
+            FileInfo fileInfo = FileUtil.blockFile(new File(monitorPath), 1024 * 1024);
 
             ctx.writeAndFlush(JSON.toJSONBytes(fileInfo));
 

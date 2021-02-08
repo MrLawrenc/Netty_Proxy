@@ -5,7 +5,6 @@ import io.netty.channel.EventLoopGroup;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author : hz20035009-逍遥
  * @date : 2020/4/28 15:49
  * @description : 线程组信息
  */

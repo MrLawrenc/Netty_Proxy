@@ -38,7 +38,7 @@ public class TcpServerHandler extends CommonHandler {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws java.lang.Exception {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (!(msg instanceof Message)) {
             log.error("unknown message,msg type: {}  remote addr : {}", msg, ctx.channel().remoteAddress());
             return;
@@ -71,7 +71,7 @@ public class TcpServerHandler extends CommonHandler {
     private void processRegister(ChannelHandlerContext ctx, Message message) {
         String password = message.getHeader().getPassword();
         if (this.password == null || !this.password.equals(password)) {
-            message.getHeader().setSuccess(false).setDescription("token("+password+") check failed!");
+            message.getHeader().setSuccess(false).setDescription("token(" + password + ") check failed!");
         } else {
             message.getHeader().setSuccess(true).setDescription("success!");
         }
@@ -112,7 +112,7 @@ public class TcpServerHandler extends CommonHandler {
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+    public void channelInactive(ChannelHandlerContext ctx) {
         log.error("the client({}) is disconnected", ctx.channel().remoteAddress());
         if (ctx.channel().isActive()) {
             ctx.close();

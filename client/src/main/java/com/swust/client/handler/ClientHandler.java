@@ -91,7 +91,7 @@ public class ClientHandler extends CommonHandler {
      * 重连
      */
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+    public void channelInactive(ChannelHandlerContext ctx) {
         log.error("client trigger channel inactive,prepare to reconnect after closing the resource!");
         ClientManager.reset();
 
