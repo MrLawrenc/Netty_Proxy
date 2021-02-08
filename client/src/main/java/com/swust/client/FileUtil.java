@@ -5,9 +5,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import lombok.extern.slf4j.Slf4j;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -28,56 +31,70 @@ import java.util.zip.Checksum;
  *     强摘要采用md5，生成慢，但是有保障。
  * </pre>
  */
-public class FileUtil {
-    private static String hexStr = "0123456789ABCDEF";
-    private static String[] binaryArray =
+@Slf4j
+public final class FileUtil {
+    private final static String hexStr = "0123456789ABCDEF";
+    private final static String[] binaryArray =
             {"0000", "0001", "0010", "0011",
                     "0100", "0101", "0110", "0111",
                     "1000", "1001", "1010", "1011",
                     "1100", "1101", "1110", "1111"};
-    static String path = "E:/zsjwchhpjb_120290(1).rar";
 
     public static void main(String[] args) {
-        String t1 = "E:/test1.txt";
-        String t2 = "E:/test2.txt";
-        t1 = t2 = path;
-        FileInfo fileInfo1 = blockFile(new File(t1), 1024 * 1024 * 100);
-        System.out.println(JSON.toJSONString(fileInfo1));
-        System.out.println("================");
-        // FileInfo fileInfo2 = new FileUtil().blockFile(new File(t2));
-        // System.out.println(fileInfo2);
+        File file = new File("E:/test1.txt");
+        log.info("原始文件大小 : {} B", file.length());
+        //单位 kb
+        FileInfo fileInfo = blockFile(file, 1024 * 512);
+        log.info(JSON.toJSONString(fileInfo));
+        log.info("文件信息大小 : {} B", JSON.toJSONString(fileInfo).length());
+
+    }
+
+    public static FileInfo blockFile(File file, int byteSize) {
+        try (InputStream inputStream = new FileInputStream(file)) {
+            return blockFile0(inputStream, byteSize);
+        } catch (Exception e) {
+            throw new RuntimeException("文件分块异常", e);
+        }
+    }
+
+    public static FileInfo blockFile(byte[] data, int byteSize) {
+        try (InputStream inputStream = new ByteArrayInputStream(data)) {
+            return blockFile0(inputStream, byteSize);
+        } catch (Exception e) {
+            throw new RuntimeException("文件分块异常", e);
+        }
     }
 
     /**
-     * 文件分块
+     * 文件分块，每个块大小为byteSize，最后一个块一定小于等于byteSize
      */
-    public static FileInfo blockFile(File file, int byteSize) {
+    public static FileInfo blockFile0(InputStream inputStream, int byteSize) {
 
-        //512字节分为一个块
-        try (FileInputStream inputStream = new FileInputStream(file)) {
+        FileInfo fileInfo = new FileInfo(byteSize);
+        List<CheckCodeInfo> checkCodeInfos = new ArrayList<>();
+        fileInfo.setCheckCodeInfos(checkCodeInfos);
 
-            FileInfo fileInfo = new FileInfo(byteSize);
-            List<DataBlockInfo> dataBlockInfos = new ArrayList<>();
-            fileInfo.setDataBlockInfos(dataBlockInfos);
+        byte[] data = new byte[byteSize];
+        int readSize;
+        try {
+            while ((readSize = inputStream.read(data)) != -1) {
 
-            byte[] data = new byte[fileInfo.getEveryEvenlyBlockSize()];
-            int flag = inputStream.read(data);
-            int lastSize = 0;
-            while (flag != -1) {
-                System.out.println("完成:" + flag);
-                if (flag != fileInfo.getEveryEvenlyBlockSize()) {
-                    lastSize = flag;
-                    data = Arrays.copyOfRange(data, 0, flag);
+                //last block
+                if (readSize != fileInfo.getEveryEvenlyBlockSize()) {
+                    data = Arrays.copyOfRange(data, 0, readSize);
+                    checkCodeInfos.add(new CheckCodeInfo(adler32(data), calculationMd5(data)));
+                    log.debug("last file block done,size : {} B", readSize);
+                    break;
                 }
+                log.debug("file block done,size : {} B", readSize);
                 //使用adler32弱校验和md5强校验配合
-                DataBlockInfo dataBlockInfo = new DataBlockInfo(adler32(data), calculationMd5(data));
-                dataBlockInfos.add(dataBlockInfo);
-                flag = inputStream.read(data);
+                CheckCodeInfo checkCodeInfo = new CheckCodeInfo(adler32(data), calculationMd5(data));
+                checkCodeInfos.add(checkCodeInfo);
             }
-            return fileInfo.setLastBlockSize(lastSize);
+            return fileInfo.setLastBlockSize(readSize);
         } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            throw new RuntimeException("文件信息读取异常", e);
         }
     }
 
@@ -92,7 +109,7 @@ public class FileUtil {
             //digest()被调用后,MessageDigest对象就被重置，即不能连续再次调用该方法计算原数据的MD5值。可以手动调用reset()方法重置输入源。
             //digest()返回值16位长度的哈希值，由byte[]承接
             byte[] md5Array = md5.digest();
-            //byte[]通常我们会转化为十六进制的32位长度的字符串来使用,本文会介绍三种常用的转换方法
+            //byte[]通常我们会转化为十六进制的32位长度的字符串来使用,本类包含三种常用的转换方法
             return bytesToHex3(md5Array);
         } catch (NoSuchAlgorithmException e) {
             return "";
@@ -165,13 +182,16 @@ public class FileUtil {
     @Accessors(chain = true)
     public static class FileInfo {
         private String filePath;
-        private List<DataBlockInfo> dataBlockInfos;
         /**
-         * 每个均匀数据块的大小
+         * 数据块的校验码信息，包含 弱滚动校验码和强校验码   最后一个为末尾的数据块校验码信息
+         */
+        private List<CheckCodeInfo> checkCodeInfos;
+        /**
+         * 每个均匀数据块的大小 单位是kb
          */
         private final int everyEvenlyBlockSize;
         /**
-         * 最后一个数据块的大小，一定满足 <=512
+         * 最后一个数据块的大小，一定满足 {@link FileInfo#lastBlockSize}<={@link FileInfo#everyEvenlyBlockSize}
          */
         private int lastBlockSize;
 
@@ -180,11 +200,22 @@ public class FileUtil {
         }
     }
 
+
+    /**
+     * 校验码信息
+     */
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class DataBlockInfo {
+    public static class CheckCodeInfo {
+        /**
+         * adler32弱校验  生成快
+         */
         private long weakToken;
+        /**
+         * md5强校验 生成慢
+         */
         private String strongToken;
     }
+
 }
