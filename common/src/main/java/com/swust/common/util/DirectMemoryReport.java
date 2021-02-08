@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * jdk11开启 　-Dio.netty.tryReflectionSetAccessible=true 否则不会使用对外内存，{@link io.netty.util.internal.PlatformDependent0#DIRECT_BUFFER_CONSTRUCTOR}为null
  * 将导致{@link PlatformDependent#DIRECT_MEMORY_COUNTER}为null，具体可以跟下PlatformDependent0和PlatformDependent的静态方法初始化源码。
  *
- * @author hz20035009-逍遥
  * date   2020/12/2 14:55
  */
 @Slf4j
