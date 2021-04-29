@@ -80,12 +80,12 @@ public class ServerMain {
 
             boolean ePoll = Epoll.isAvailable();
             log.info("epoll is available:{}\nnetty version : {}\npwd:{}", ePoll, Version.identify().entrySet(), password);
-            start(port, password);
+            startServer(port, password);
         }
     }
 
 
-    private static void start(int port, String password) throws Exception {
+    private static void startServer(int port, String password) throws Exception {
         //全局流量整形
         GlobalTrafficShapingHandler globalTrafficShapingHandler =
                 new GlobalTrafficShapingHandler(new NioEventLoopGroup(), 100 * 1024 * 1024, 100 * 1024 * 1024);
@@ -98,6 +98,7 @@ public class ServerMain {
             public void initChannel(SocketChannel ch) {
 
                 ChannelPipeline pipeline = ch.pipeline();
+                //心跳包
                 pipeline.addLast(new IdleStateHandler(60, 20, 0, TimeUnit.SECONDS));
 
 
@@ -129,7 +130,7 @@ public class ServerMain {
                 //.handler(new LoggingHandler(LogLevel.TRACE))
                 .childHandler(channelInitializer)
                 .childOption(ChannelOption.SO_KEEPALIVE, true);
-        ChannelFuture future = bootstrap.bind(port).sync();
+        ChannelFuture future = bootstrap.bind(port);
         future.addListener(fu -> {
             if (fu.isSuccess()) {
                 log.info("server  started on port {}!", port);
@@ -138,8 +139,8 @@ public class ServerMain {
                 System.exit(0);
             }
         });
-        Channel channel = future.channel();
-        channel.closeFuture().addListener((ChannelFutureListener) f -> {
+        future.sync();
+        future.channel().closeFuture().addListener((ChannelFutureListener) f -> {
             ServerManager.PROXY_BOSS_GROUP.shutdownGracefully();
             ServerManager.PROXY_WORKER_GROUP.shutdownGracefully();
         });
