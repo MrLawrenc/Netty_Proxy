@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * @author : LiuMing
  * @date : 2019/11/4 15:03
- * @description :   消息解码器
+ * 消息解码器
  */
 public class MessageDecoder2 extends ReplayingDecoder<Void> {
 

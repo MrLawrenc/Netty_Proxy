@@ -10,6 +10,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.util.internal.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
@@ -35,6 +36,9 @@ public class TcpServerHandler extends CommonHandler {
 
 
     public TcpServerHandler(String password) {
+        if (StringUtil.isNullOrEmpty(password)){
+            throw new RuntimeException("password is not must null");
+        }
         this.password = password;
     }
 
@@ -75,14 +79,15 @@ public class TcpServerHandler extends CommonHandler {
 
 
     /**
-     * 处理客户端注册,每个客户端注册成功都会启动一个服务，绑定客户端指定的端口
+     * 处理客户端注册,每个客户端注册成功都会启动一个代理服务server，并且按"代理客户端"要求绑定指定的端口
      *
-     * @param ctx 与当前服务端保持连接的内网客户端channel
+     * @param ctx     客户端channel
+     * @param message 消息包
      */
     private void processRegister(ChannelHandlerContext ctx, Message message) {
         String password = message.getHeader().getPassword();
-        if (this.password == null || !this.password.equals(password)) {
-            message.getHeader().setSuccess(false).setDescription("token(" + password + ") check failed!");
+        if (!this.password.equals(password)) {
+            message.getHeader().setDescription("token(" + password + ") check failed!");
         } else {
             message.getHeader().setSuccess(true).setDescription("success!");
         }

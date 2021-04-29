@@ -24,14 +24,13 @@ public class MessageDecoder0 extends ReplayingDecoder<MessageDecoder0.MyDecoderS
         super(MyDecoderState.READ_LENGTH);
     }
 
-    /**
-     *
-     */
+
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> out) {
         switch (state()) {
             case READ_LENGTH:
                 dataLen = byteBuf.readInt();
+                checkpoint(MyDecoderState.READ_CONTENT);
             case READ_CONTENT:
                 byte[] data = new byte[dataLen];
                 byteBuf.readBytes(data);
