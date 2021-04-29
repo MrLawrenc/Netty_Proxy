@@ -46,4 +46,14 @@ public class LocalProxyHandler extends ChannelInboundHandlerAdapter {
         header.setChannelId(remoteChannelId);
         serverChannel.writeAndFlush(message);
     }
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        Message message = new Message();
+        MessageHeader header = message.getHeader();
+        header.setType(MessageType.DISCONNECTED);
+        header.setChannelId(remoteChannelId);
+        serverChannel.writeAndFlush(message);
+        ctx.close();
+    }
 }

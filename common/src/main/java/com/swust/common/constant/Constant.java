@@ -1,9 +1,9 @@
 package com.swust.common.constant;
 
 /**
- * @author : LiuMingyao
- * @date : 2019/11/4 20:24
- * @description : 常量
+ * 常量
+ * @author   Lawrence
+ * date  2021/4/29 16:53
  */
 public class Constant {
     public static final String DEFAULT_PORT = "12525";

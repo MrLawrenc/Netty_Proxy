@@ -4,9 +4,10 @@ package com.swust.common.protocol;
 import lombok.Getter;
 
 /**
- * @author : LiuMing
- * @date : 2019/11/4 10:58
- * @description :   消息类型
+ * 消息包类型
+ *
+ * @author Lawrence
+ * date  2021/4/29 17:02
  */
 public enum MessageType {
 

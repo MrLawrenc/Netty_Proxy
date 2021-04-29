@@ -30,7 +30,8 @@ public final class ServerManager {
 
 
     /**
-     * 与当前外网代理服务端连接的用户客户端channel，使用其channel id作为msg的头信息进行传递
+     * key 内网客户端channel id
+     * value 为改channel id对于的内网客户端开启的代理服务端ctx
      */
     public static final Map<String, ChannelHandlerContext> USER_CLIENT_MAP = new ConcurrentHashMap<>();
 
