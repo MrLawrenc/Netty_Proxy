@@ -9,7 +9,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @author : LiuMing
+ * @author : Lawrence
  * 2019/11/4 14:05
  * 外部请求到公网服务器，公网服务器将请求转发到当前服务器，当前服务器建立客户端，访问本地服务
  */

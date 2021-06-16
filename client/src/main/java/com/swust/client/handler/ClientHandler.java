@@ -105,7 +105,7 @@ public class ClientHandler extends CommonHandler {
                     log.info("restart client success!");
                     return;
                 } catch (Throwable e) {
-                    e.printStackTrace();
+                    log.error("restart fail!", e);
                 }
                 sleep <<= 1;
                 count++;
