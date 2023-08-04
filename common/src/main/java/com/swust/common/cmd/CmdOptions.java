@@ -2,9 +2,9 @@ package com.swust.common.cmd;
 
 
 /**
- * @author : LiuMing
- * @date : 2019/11/4 9:37
- * @description :   命令行参数枚举
+ * @author LiuMing
+ * @since 2019/11/4 9:37
+ * 命令行参数枚举
  */
 public enum CmdOptions {
     /**
@@ -39,10 +39,10 @@ public enum CmdOptions {
      * 配置文件路径
      */
     PROFILE("profile", "Profile", true, "Profile path");
-    private String opt;
-    private String longOpt;
-    private String description;
-    private boolean hasArgs;
+    private final String opt;
+    private final String longOpt;
+    private final String description;
+    private final boolean hasArgs;
 
     public boolean isHasArgs() {
         return hasArgs;

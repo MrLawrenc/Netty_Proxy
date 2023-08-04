@@ -13,10 +13,11 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author : LiuMing
- * 2019/11/4 10:37
+ * @since 2019/11/4 10:37
  * 外网代理
  */
-@Data@Slf4j
+@Data
+@Slf4j
 public class ExtranetServer {
     private ExtrantServerInitializer initializer;
 
@@ -31,7 +32,7 @@ public class ExtranetServer {
 
     public ExtranetServer initTcpServer(int port, ChannelHandlerContext clientCtx) {
         this.port = port;
-        this.initializer = new ExtrantServerInitializer(clientCtx,port);
+        this.initializer = new ExtrantServerInitializer(clientCtx, port);
         ServerBootstrap b = new ServerBootstrap();
         b.group(ServerManager.PROXY_BOSS_GROUP, ServerManager.PROXY_WORKER_GROUP)
                 .channel(NioServerSocketChannel.class)
@@ -55,7 +56,7 @@ public class ExtranetServer {
         private final RemoteProxyHandler remoteProxyHandler;
 
         public ExtrantServerInitializer(ChannelHandlerContext clientCtx, int port) {
-            this.remoteProxyHandler =  new RemoteProxyHandler(clientCtx, port);
+            this.remoteProxyHandler = new RemoteProxyHandler(clientCtx, port);
         }
 
         @Override

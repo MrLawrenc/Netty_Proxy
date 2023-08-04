@@ -27,16 +27,15 @@ import java.util.concurrent.TimeUnit;
  * 服务端入口
  *
  * @author : LiuMing
- * 2019/11/4 9:46
+ * @since 2019/11/4 9:46
  */
 @Slf4j
 public class ServerMain {
 
     /**
      * Apache Commons CLI是开源的命令行解析工具，它可以帮助开发者快速构建启动命令，并且帮助你组织命令的参数、以及输出列表等。
-     * 参考博文:https://www.cnblogs.com/xing901022/archive/2016/06/22/5608823.html
      * CLI分为三个过程：
-     * <p>      </>定义阶段：在Java代码中定义Optin参数，定义参数、是否需要输入值、简单的描述等
+     * <p>      </>定义阶段：在Java代码中定义Option参数，定义参数、是否需要输入值、简单的描述等
      * <p>      </>解析阶段：应用程序传入参数后，CLI进行解析
      * <p>      </>询问阶段：通过查询CommandLine询问进入到哪个程序分支中
      */
@@ -59,18 +58,13 @@ public class ServerMain {
                 CmdOptions.PORT.isHasArgs(), CmdOptions.PORT.getDescription());
         options.addOption(CmdOptions.PASSWORD.getOpt(), CmdOptions.PASSWORD.getLongOpt(),
                 CmdOptions.PASSWORD.isHasArgs(), CmdOptions.PASSWORD.getDescription());
-        /*
-         *
-         * 2.解析阶段
-         *      通过解析器解析参数
-         * */
+
+
+        //step 2.解析阶段,通过解析器解析参数
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
 
-        /*
-         * 3.询问阶段
-         *      根据commandLine查询参数，提供服务
-         * */
+        //step 3.询问阶段,根据commandLine查询参数，提供服务
         if (cmd.hasOption(CmdOptions.HELP.getOpt()) || cmd.hasOption(CmdOptions.HELP.getLongOpt())) {
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp(Constant.OPTIONS, options);
